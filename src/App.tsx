@@ -254,9 +254,9 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="PixelPress 首页">
-          <span className="brand-mark"><Sparkles size={16} strokeWidth={2.6} /></span>
-          <span>pixelpress<span className="brand-dot">.</span></span>
+        <a className="brand" href="#top" aria-label="压缩鸭首页">
+          <img className="brand-mark" src="/duck-mark.svg" alt="" />
+          <span className="brand-name">压缩鸭<span className="brand-english">QUACKPRESS</span></span>
         </a>
         <nav className="desktop-nav" aria-label="主导航">
           <a className="nav-active" href="#compress">压缩工具</a>
@@ -273,10 +273,10 @@ function App() {
       <main id="top">
         <section className="hero-section" id="intro">
           <div className="hero-copy">
-            <div className="eyebrow"><span className="eyebrow-line" /> PIXEL-PERFECT COMPRESSION</div>
-            <h1>更轻的图片，<br /><em>更快的世界。</em></h1>
-            <p className="hero-description">把图片变小，保持它原来的清晰。没有复杂设置，上传之后就能拿走结果。</p>
-            <div className="hero-proof"><div className="avatar-stack"><span>周</span><span>林</span><span>M</span></div><span>已经有 12,000+ 张图片在这里变轻</span></div>
+            <div className="eyebrow"><span className="eyebrow-line" /> QUACKPRESS IMAGE TOOL</div>
+            <h1>图片变轻，<br /><em>网页更快。</em></h1>
+            <p className="hero-description">选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。</p>
+            <div className="hero-proof"><span className="local-proof"><LockKeyhole size={13} /> 本地处理</span><span>无需注册，图片不离开你的设备</span></div>
           </div>
           <div className="hero-aside"><span className="aside-number">01</span><span className="aside-label">DROP<br />YOUR FILES<br />HERE</span><span className="aside-arrow">↘</span></div>
         </section>
@@ -298,7 +298,7 @@ function App() {
             <div className="dropzone-title">拖拽图片到这里</div>
             <div className="dropzone-subtitle">或点击选择文件</div>
             <div className="dropzone-meta"><span>JPG</span><span>PNG</span><span>WEBP</span><i /> <span>单张最大 20 MB</span></div>
-            <div className="dropzone-hint"><LockKeyhole size={13} /> 图片会在 24 小时后自动删除</div>
+            <div className="dropzone-hint"><LockKeyhole size={13} /> 图片只在你的设备上处理</div>
           </div>
           <div className="format-selector" aria-label="选择输出格式">
             <span className="format-selector-label">输出格式</span>
@@ -333,18 +333,18 @@ function App() {
         </section>
 
         <section className="features-section" id="how-it-works">
-          <div className="section-heading"><span className="section-kicker">WHY PIXELPRESS</span><h2>少一点等待，<br />多一点创造。</h2></div>
+          <div className="section-heading"><span className="section-kicker">WHY QUACKPRESS</span><h2>少一点等待，<br />多一点创造。</h2></div>
           <div className="feature-grid">
             <FeatureCard number="01" icon={<Zap size={19} />} title="快得让人忘记等待" copy="所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。" />
-            <FeatureCard number="02" icon={<ShieldCheck size={19} />} title="你的图片，只属于你" copy="我们不保存、不售卖、不训练。处理完成后，临时文件会在 24 小时内自动清理。" />
+            <FeatureCard number="02" icon={<ShieldCheck size={19} />} title="图片不离开你的设备" copy="压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。" />
             <FeatureCard number="03" icon={<Sparkles size={19} />} title="清晰，肉眼看不出差别" copy="智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。" />
           </div>
         </section>
 
-        <section className="privacy-strip" id="privacy"><div className="privacy-icon"><LockKeyhole size={22} /></div><div><strong>隐私优先的压缩</strong><span>无需注册，无需上传到服务器。每次处理都留在你的设备上。</span></div><CircleHelp size={18} className="privacy-help" /></section>
+        <section className="privacy-strip" id="privacy"><div className="privacy-icon"><LockKeyhole size={22} /></div><div><strong>隐私优先的压缩</strong><span>无需注册，无需上传到服务器。压缩和预览都留在你的设备上。</span></div><CircleHelp size={18} className="privacy-help" /></section>
       </main>
 
-      <footer className="footer"><span>© 2025 PixelPress</span><span>Made for the web, with care.</span><div><a href="#privacy">隐私政策</a><a href="#how-it-works">帮助中心</a></div></footer>
+      <footer className="footer"><span>© 2026 压缩鸭 QuackPress</span><span>Made for the web, with care.</span><div><a href="#privacy">隐私说明</a><a href="#how-it-works">帮助中心</a></div></footer>
       {activeItem && <PreviewModal item={activeItem} onClose={() => setActiveItem(null)} onDownload={downloadItem} />}
     </div>
   )
