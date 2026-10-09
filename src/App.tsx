@@ -20,7 +20,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
-  SlidersHorizontal,
   Trash2,
   X,
   Zap,
@@ -272,7 +271,7 @@ function App() {
       </header>
 
       <main id="top">
-        <section className="hero-section" id="compress">
+        <section className="hero-section" id="intro">
           <div className="hero-copy">
             <div className="eyebrow"><span className="eyebrow-line" /> PIXEL-PERFECT COMPRESSION</div>
             <h1>更轻的图片，<br /><em>更快的世界。</em></h1>
@@ -282,35 +281,45 @@ function App() {
           <div className="hero-aside"><span className="aside-number">01</span><span className="aside-label">DROP<br />YOUR FILES<br />HERE</span><span className="aside-arrow">↘</span></div>
         </section>
 
-        <section className="workspace-section">
-          {!hasWork ? (
-            <div
-              className={`dropzone ${isDragging ? 'dropzone-active' : ''}`}
-              onDragEnter={(event) => { event.preventDefault(); setIsDragging(true) }}
-              onDragOver={(event) => event.preventDefault()}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => inputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click() }}
-            >
-              <input ref={inputRef} type="file" accept={ACCEPTED_TYPES.join(',')} multiple hidden onChange={handleInput} />
-              <div className="dropzone-art"><CloudUpload size={30} strokeWidth={1.5} /><span className="dropzone-plus">+</span></div>
-              <div className="dropzone-title">拖拽图片到这里</div>
-              <div className="dropzone-subtitle">或点击选择文件</div>
-              <div className="format-control" onClick={(event) => event.stopPropagation()}><SlidersHorizontal size={14} /><label htmlFor="output-format">输出格式</label><select id="output-format" value={outputFormat} onChange={(event) => setOutputFormat(event.target.value as OutputFormat)}><option value="original">保持原格式（默认）</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select><ChevronDown size={13} /></div>
-              <div className="dropzone-meta"><span>JPG</span><span>PNG</span><span>WEBP</span><i /> <span>单张最大 20 MB</span></div>
-              <div className="dropzone-hint"><LockKeyhole size={13} /> 图片会在 24 小时后自动删除</div>
+        <section className="workspace-section" id="compress">
+          <div
+            className={`dropzone ${isDragging ? 'dropzone-active' : ''}`}
+            onDragEnter={(event) => { event.preventDefault(); setIsDragging(true) }}
+            onDragOver={(event) => event.preventDefault()}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => inputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click() }}
+          >
+            <input ref={inputRef} type="file" accept={ACCEPTED_TYPES.join(',')} multiple hidden onChange={handleInput} />
+            <div className="dropzone-art"><CloudUpload size={30} strokeWidth={1.5} /><span className="dropzone-plus">+</span></div>
+            <div className="dropzone-title">拖拽图片到这里</div>
+            <div className="dropzone-subtitle">或点击选择文件</div>
+            <div className="dropzone-meta"><span>JPG</span><span>PNG</span><span>WEBP</span><i /> <span>单张最大 20 MB</span></div>
+            <div className="dropzone-hint"><LockKeyhole size={13} /> 图片会在 24 小时后自动删除</div>
+          </div>
+          <div className="format-selector" aria-label="选择输出格式">
+            <span className="format-selector-label">输出格式</span>
+            <div className="format-options">
+              {([['original', '保持原格式'], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
+                <label className={`format-option ${outputFormat === value ? 'format-option-selected' : ''}`} key={value}>
+                  <input type="radio" name="output-format" value={value} checked={outputFormat === value} onChange={() => setOutputFormat(value)} />
+                  <span className="radio-mark" />
+                  <span>{label}</span>
+                  {value === 'original' && <small>默认</small>}
+                </label>
+              ))}
             </div>
-          ) : (
+          </div>
+          {hasWork && (
             <div className="queue-panel">
               <div className="queue-header">
                 <div><span className="section-kicker">YOUR WORKSPACE</span><h2>{allDone ? '压缩完成。' : '正在让图片变轻。'}</h2></div>
                 <div className="queue-actions">
                   <button className="icon-button" onClick={() => inputRef.current?.click()} aria-label="继续添加图片" title="继续添加图片"><Plus size={18} /></button>
-                  <input ref={inputRef} type="file" accept={ACCEPTED_TYPES.join(',')} multiple hidden onChange={handleInput} />
-                  {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> 全部下载</button>}
+                  {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> 全部下载 {completedItems[0]?.outputFormat ?? ''}</button>}
                 </div>
               </div>
               <div className="queue-summary"><span><FileStack size={15} /> {items.length} 个文件</span><span><Zap size={15} /> {allDone ? `共节省 ${formatSavings(totalOriginal, totalOutput)}` : '本地处理，速度优先'}</span><span className="format-summary">输出：{formatLabel(outputFormat)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? '继续' : '暂停'}</button></div>
@@ -348,7 +357,7 @@ function ImageRow({ item, onRemove, onRetry, onDownload, onPreview }: { item: Im
     <div className="image-info"><div className="image-name" title={item.file.name}>{item.file.name}</div><div className="image-meta">{formatBytes(item.originalSize)} {item.width && `· ${item.width} × ${item.height}`} {item.status === 'done' && <><span className="meta-arrow">→</span> {formatBytes(item.outputSize ?? 0)} · {item.outputFormat}</>}</div></div>
     <div className="row-status"><div className="status-line"><span className={`status-dot status-dot-${item.status}`} />{statusCopy[item.status]}</div>{item.status === 'compressing' && <div className="mini-progress"><span style={{ width: `${item.progress}%` }} /></div>}{item.status === 'error' && <span className="error-copy">{item.error}</span>}</div>
     <div className="saving-cell">{item.status === 'done' ? <><strong>↓ {formatSavings(item.originalSize, item.outputSize)}</strong><span>节省空间</span></> : <span>—</span>}</div>
-    <div className="row-actions">{item.status === 'done' && <button className="download-button" onClick={() => onDownload(item)}><ArrowDownToLine size={16} /> 下载</button>}{item.status === 'error' && <button className="retry-button" onClick={() => onRetry(item)}><RefreshCw size={15} /> 重试</button>}<button className="remove-button" onClick={() => onRemove(item.id)} aria-label={`删除 ${item.file.name}`} title="删除"><Trash2 size={16} /></button></div>
+    <div className="row-actions">{item.status === 'done' && <button className="download-button" onClick={() => onDownload(item)} aria-label={`下载 ${item.outputFormat ?? '图片'}`}><ArrowDownToLine size={16} /><span className="download-label">下载 {item.outputFormat ?? '图片'}</span></button>}{item.status === 'error' && <button className="retry-button" onClick={() => onRetry(item)}><RefreshCw size={15} /> 重试</button>}<button className="remove-button" onClick={() => onRemove(item.id)} aria-label={`删除 ${item.file.name}`} title="删除"><Trash2 size={16} /></button></div>
   </div>
 }
 
@@ -358,7 +367,7 @@ function FeatureCard({ number, icon, title, copy }: { number: string; icon: Reac
 
 function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose: () => void; onDownload: (item: ImageItem) => void }) {
   const [showOriginal, setShowOriginal] = useState(false)
-  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal" role="dialog" aria-modal="true" aria-label="图片预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">PREVIEW</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭预览"><X size={18} /></button></div><div className="preview-stage"><img src={showOriginal ? item.previewUrl : item.outputUrl} alt={item.file.name} /><div className="preview-label">{showOriginal ? '原图' : '压缩后'}</div></div><div className="preview-toggle"><button className={!showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(false)}>压缩后 · {formatBytes(item.outputSize ?? 0)}</button><button className={showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(true)}>原图 · {formatBytes(item.originalSize)}</button></div><div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载图片</button></div></div></div>
+  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal" role="dialog" aria-modal="true" aria-label="图片预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">PREVIEW</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭预览"><X size={18} /></button></div><div className="preview-stage"><img src={showOriginal ? item.previewUrl : item.outputUrl} alt={item.file.name} /><div className="preview-label">{showOriginal ? '原图' : '压缩后'}</div></div><div className="preview-toggle"><button className={!showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(false)}>压缩后 · {formatBytes(item.outputSize ?? 0)}</button><button className={showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(true)}>原图 · {formatBytes(item.originalSize)}</button></div><div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载 {item.outputFormat}</button></div></div></div>
 }
 
 export default App
