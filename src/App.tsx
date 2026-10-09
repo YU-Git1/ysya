@@ -298,8 +298,8 @@ function App() {
             <div className="dropzone-title">拖拽图片到这里</div>
             <div className="dropzone-subtitle">或点击选择文件</div>
             <div className="dropzone-meta"><span>支持格式</span><strong>JPG、PNG、WebP</strong><i /> <span>单张文件最大 20 MB</span></div>
-            <div className="dropzone-hint"><LockKeyhole size={13} /> 图片只在你的设备上处理</div>
           </div>
+          <div className="local-processing-note"><LockKeyhole size={13} /> 本地处理 · 图片不会上传到服务器</div>
           <div className="format-selector" aria-label="选择输出格式">
             <span className="format-selector-label">输出格式</span>
             <div className="format-options">
