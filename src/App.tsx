@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   Pause,
   Play,
-  Plus,
   RefreshCw,
   ShieldCheck,
   Sparkles,
@@ -290,7 +289,6 @@ function App() {
               <div className="queue-header">
                 <div><span className="section-kicker">YOUR WORKSPACE</span><h2>{allDone ? '压缩完成。' : '正在让图片变轻。'}</h2></div>
                 <div className="queue-actions">
-                  <button className="icon-button" onClick={() => inputRef.current?.click()} aria-label="继续添加图片" title="继续添加图片"><Plus size={18} /></button>
                   {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> 全部下载 {completedItems[0]?.outputFormat ?? ''}</button>}
                 </div>
               </div>
