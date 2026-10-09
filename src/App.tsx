@@ -1,5 +1,6 @@
 import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { compressLocally } from './lib/compression/localEncoder'
 import {
   ArrowDownToLine,
   Check,
@@ -106,60 +107,31 @@ function App() {
   }, [])
 
   const compressItem = useCallback(
-    (item: ImageItem) => {
+    async (item: ImageItem) => {
       updateItem(item.id, { status: 'compressing', progress: 8 })
-      const image = new Image()
-      image.onload = () => {
-        const canvas = document.createElement('canvas')
-        canvas.width = image.naturalWidth
-        canvas.height = image.naturalHeight
-        const context = canvas.getContext('2d')
-        if (!context) {
-          updateItem(item.id, { status: 'error', error: '浏览器不支持图片处理' })
-          return
-        }
-        context.drawImage(image, 0, 0)
-        const formatDetails = getFormatDetails(item.file, outputFormat)
-        let progress = 8
-        const timer = window.setInterval(() => {
-          if (isPausedRef.current) return
-          progress = Math.min(progress + 18, 92)
-          updateItem(item.id, { progress })
-          if (progress >= 92) {
-            window.clearInterval(timer)
-            canvas.toBlob(
-              (blob) => {
-                if (!blob) {
-                  updateItem(item.id, { status: 'error', error: '图片处理失败，请重试' })
-                  return
-                }
-                const outputUrl = URL.createObjectURL(blob)
-                updateItem(item.id, {
-                  outputUrl,
-                  outputName: getOutputName(item.file.name, outputFormat),
-                  outputSize: blob.size,
-                  outputFormat: formatDetails.label,
-                  width: image.naturalWidth,
-                  height: image.naturalHeight,
-                  progress: 100,
-                  status: 'done',
-                })
-              },
-              formatDetails.mime,
-              formatDetails.quality,
-            )
-          }
-        }, 90)
+      try {
+        const result = await compressLocally(item.file, outputFormat, (progress) => updateItem(item.id, { progress }), () => isPausedRef.current)
+        const outputUrl = URL.createObjectURL(result.blob)
+        updateItem(item.id, {
+          outputUrl,
+          outputName: getOutputName(item.file.name, outputFormat),
+          outputSize: result.blob.size,
+          outputFormat: result.formatLabel,
+          width: result.width,
+          height: result.height,
+          progress: 100,
+          status: 'done',
+        })
+      } catch {
+        updateItem(item.id, { status: 'error', error: '图片处理失败，请重试' })
       }
-      image.onerror = () => updateItem(item.id, { status: 'error', error: '无法读取这张图片' })
-      image.src = item.previewUrl
     },
     [outputFormat, updateItem],
   )
 
   const startQueued = useCallback(
     (newItems: ImageItem[]) => {
-      window.setTimeout(() => newItems.forEach(compressItem), 160)
+      window.setTimeout(() => newItems.forEach((item) => void compressItem(item)), 160)
     },
     [compressItem],
   )
