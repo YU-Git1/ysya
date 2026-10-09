@@ -20,12 +20,14 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  SlidersHorizontal,
   Trash2,
   X,
   Zap,
 } from 'lucide-react'
 
 type ItemStatus = 'queued' | 'compressing' | 'done' | 'error'
+type OutputFormat = 'original' | 'image/jpeg' | 'image/png' | 'image/webp'
 
 type ImageItem = {
   id: string
@@ -33,6 +35,7 @@ type ImageItem = {
   previewUrl: string
   outputUrl?: string
   outputName?: string
+  outputFormat?: string
   originalSize: number
   outputSize?: number
   width?: number
@@ -58,9 +61,24 @@ function formatSavings(original: number, output?: number) {
   return `${savings}%`
 }
 
-function getOutputName(fileName: string) {
+function getOutputName(fileName: string, outputFormat: OutputFormat) {
   const index = fileName.lastIndexOf('.')
-  return `${index > 0 ? fileName.slice(0, index) : fileName}-min.webp`
+  const baseName = index > 0 ? fileName.slice(0, index) : fileName
+  if (outputFormat === 'original') return `${baseName}-min${index > 0 ? fileName.slice(index) : '.jpg'}`
+  const extension = outputFormat === 'image/jpeg' ? 'jpg' : outputFormat === 'image/png' ? 'png' : 'webp'
+  return `${baseName}-min.${extension}`
+}
+
+function getFormatDetails(file: File, outputFormat: OutputFormat) {
+  if (outputFormat === 'original') {
+    const mime = file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg'
+    return { mime, quality: mime === 'image/png' ? undefined : mime === 'image/jpeg' ? 0.84 : 0.78, label: mime === 'image/png' ? 'PNG' : mime === 'image/webp' ? 'WebP' : 'JPG' }
+  }
+  return { mime: outputFormat, quality: outputFormat === 'image/png' ? undefined : outputFormat === 'image/jpeg' ? 0.84 : 0.78, label: outputFormat === 'image/jpeg' ? 'JPG' : outputFormat === 'image/png' ? 'PNG' : 'WebP' }
+}
+
+function formatLabel(outputFormat: OutputFormat) {
+  return outputFormat === 'original' ? '保持原格式' : outputFormat === 'image/jpeg' ? '转换为 JPG' : outputFormat === 'image/png' ? '转换为 PNG' : '转换为 WebP'
 }
 
 function App() {
@@ -70,6 +88,7 @@ function App() {
   const [items, setItems] = useState<ImageItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('original')
   const [activeItem, setActiveItem] = useState<ImageItem | null>(null)
   const [notice, setNotice] = useState('')
 
@@ -101,6 +120,7 @@ function App() {
           return
         }
         context.drawImage(image, 0, 0)
+        const formatDetails = getFormatDetails(item.file, outputFormat)
         let progress = 8
         const timer = window.setInterval(() => {
           if (isPausedRef.current) return
@@ -117,16 +137,17 @@ function App() {
                 const outputUrl = URL.createObjectURL(blob)
                 updateItem(item.id, {
                   outputUrl,
-                  outputName: getOutputName(item.file.name),
+                  outputName: getOutputName(item.file.name, outputFormat),
                   outputSize: blob.size,
+                  outputFormat: formatDetails.label,
                   width: image.naturalWidth,
                   height: image.naturalHeight,
                   progress: 100,
                   status: 'done',
                 })
               },
-              'image/webp',
-              0.78,
+              formatDetails.mime,
+              formatDetails.quality,
             )
           }
         }, 90)
@@ -134,7 +155,7 @@ function App() {
       image.onerror = () => updateItem(item.id, { status: 'error', error: '无法读取这张图片' })
       image.src = item.previewUrl
     },
-    [updateItem],
+    [outputFormat, updateItem],
   )
 
   const startQueued = useCallback(
@@ -208,7 +229,7 @@ function App() {
     if (!item.outputUrl) return
     const link = document.createElement('a')
     link.href = item.outputUrl
-    link.download = item.outputName ?? getOutputName(item.file.name)
+    link.download = item.outputName ?? getOutputName(item.file.name, outputFormat)
     link.click()
   }
 
@@ -278,6 +299,7 @@ function App() {
               <div className="dropzone-art"><CloudUpload size={30} strokeWidth={1.5} /><span className="dropzone-plus">+</span></div>
               <div className="dropzone-title">拖拽图片到这里</div>
               <div className="dropzone-subtitle">或点击选择文件</div>
+              <div className="format-control" onClick={(event) => event.stopPropagation()}><SlidersHorizontal size={14} /><label htmlFor="output-format">输出格式</label><select id="output-format" value={outputFormat} onChange={(event) => setOutputFormat(event.target.value as OutputFormat)}><option value="original">保持原格式（默认）</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select><ChevronDown size={13} /></div>
               <div className="dropzone-meta"><span>JPG</span><span>PNG</span><span>WEBP</span><i /> <span>单张最大 20 MB</span></div>
               <div className="dropzone-hint"><LockKeyhole size={13} /> 图片会在 24 小时后自动删除</div>
             </div>
@@ -291,7 +313,7 @@ function App() {
                   {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> 全部下载</button>}
                 </div>
               </div>
-              <div className="queue-summary"><span><FileStack size={15} /> {items.length} 个文件</span><span><Zap size={15} /> {allDone ? `共节省 ${formatSavings(totalOriginal, totalOutput)}` : '本地处理，速度优先'}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? '继续' : '暂停'}</button></div>
+              <div className="queue-summary"><span><FileStack size={15} /> {items.length} 个文件</span><span><Zap size={15} /> {allDone ? `共节省 ${formatSavings(totalOriginal, totalOutput)}` : '本地处理，速度优先'}</span><span className="format-summary">输出：{formatLabel(outputFormat)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? '继续' : '暂停'}</button></div>
               <div className="items-list">
                 {items.map((item) => <ImageRow key={item.id} item={item} onRemove={removeItem} onRetry={retryItem} onDownload={downloadItem} onPreview={setActiveItem} />)}
               </div>
@@ -323,7 +345,7 @@ function ImageRow({ item, onRemove, onRetry, onDownload, onPreview }: { item: Im
   const statusCopy = { queued: '排队中', compressing: '压缩中', done: '已完成', error: '处理失败' }
   return <div className={`image-row status-${item.status}`}>
     <button className="thumb-button" onClick={() => item.status === 'done' && onPreview(item)} aria-label={`${item.file.name} 预览`}><img src={item.previewUrl} alt="" /><span className="thumb-overlay"><MoreHorizontal size={17} /></span></button>
-    <div className="image-info"><div className="image-name" title={item.file.name}>{item.file.name}</div><div className="image-meta">{formatBytes(item.originalSize)} {item.width && `· ${item.width} × ${item.height}`} {item.status === 'done' && <><span className="meta-arrow">→</span> {formatBytes(item.outputSize ?? 0)}</>}</div></div>
+    <div className="image-info"><div className="image-name" title={item.file.name}>{item.file.name}</div><div className="image-meta">{formatBytes(item.originalSize)} {item.width && `· ${item.width} × ${item.height}`} {item.status === 'done' && <><span className="meta-arrow">→</span> {formatBytes(item.outputSize ?? 0)} · {item.outputFormat}</>}</div></div>
     <div className="row-status"><div className="status-line"><span className={`status-dot status-dot-${item.status}`} />{statusCopy[item.status]}</div>{item.status === 'compressing' && <div className="mini-progress"><span style={{ width: `${item.progress}%` }} /></div>}{item.status === 'error' && <span className="error-copy">{item.error}</span>}</div>
     <div className="saving-cell">{item.status === 'done' ? <><strong>↓ {formatSavings(item.originalSize, item.outputSize)}</strong><span>节省空间</span></> : <span>—</span>}</div>
     <div className="row-actions">{item.status === 'done' && <button className="download-button" onClick={() => onDownload(item)}><ArrowDownToLine size={16} /> 下载</button>}{item.status === 'error' && <button className="retry-button" onClick={() => onRetry(item)}><RefreshCw size={15} /> 重试</button>}<button className="remove-button" onClick={() => onRemove(item.id)} aria-label={`删除 ${item.file.name}`} title="删除"><Trash2 size={16} /></button></div>
@@ -336,7 +358,7 @@ function FeatureCard({ number, icon, title, copy }: { number: string; icon: Reac
 
 function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose: () => void; onDownload: (item: ImageItem) => void }) {
   const [showOriginal, setShowOriginal] = useState(false)
-  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal" role="dialog" aria-modal="true" aria-label="图片预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">PREVIEW</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭预览"><X size={18} /></button></div><div className="preview-stage"><img src={showOriginal ? item.previewUrl : item.outputUrl} alt={item.file.name} /><div className="preview-label">{showOriginal ? '原图' : '压缩后'}</div></div><div className="preview-toggle"><button className={!showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(false)}>压缩后 · {formatBytes(item.outputSize ?? 0)}</button><button className={showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(true)}>原图 · {formatBytes(item.originalSize)}</button></div><div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · WebP</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载图片</button></div></div></div>
+  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal" role="dialog" aria-modal="true" aria-label="图片预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">PREVIEW</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭预览"><X size={18} /></button></div><div className="preview-stage"><img src={showOriginal ? item.previewUrl : item.outputUrl} alt={item.file.name} /><div className="preview-label">{showOriginal ? '原图' : '压缩后'}</div></div><div className="preview-toggle"><button className={!showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(false)}>压缩后 · {formatBytes(item.outputSize ?? 0)}</button><button className={showOriginal ? 'selected' : ''} onClick={() => setShowOriginal(true)}>原图 · {formatBytes(item.originalSize)}</button></div><div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载图片</button></div></div></div>
 }
 
 export default App
