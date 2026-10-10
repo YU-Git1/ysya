@@ -345,8 +345,13 @@ function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose:
   const [comparisonMode, setComparisonMode] = useState<'side-by-side' | 'split'>('side-by-side')
   const [splitPosition, setSplitPosition] = useState(50)
   const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
   const [draggingSplit, setDraggingSplit] = useState(false)
+  const [draggingPan, setDraggingPan] = useState(false)
   const stageRef = useRef<HTMLDivElement>(null)
+  const panStartRef = useRef<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null)
+  const activePointersRef = useRef(new Map<number, { x: number; y: number }>())
+  const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null)
 
   const setSplitFromClientX = useCallback((clientX: number) => {
     const bounds = stageRef.current?.getBoundingClientRect()
@@ -360,14 +365,75 @@ function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose:
     const handlePointerUp = () => setDraggingSplit(false)
     window.addEventListener('pointermove', handlePointerMove)
     window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
     return () => {
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
     }
   }, [draggingSplit, setSplitFromClientX])
 
-  const imageTransform = { transform: `scale(${zoom})` }
-  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal comparison-modal" role="dialog" aria-modal="true" aria-label="图片对比预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">COMPARE</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭对比"><X size={18} /></button></div><div className="comparison-switch" role="group" aria-label="对比模式"><button className={comparisonMode === 'side-by-side' ? 'selected' : ''} onClick={() => setComparisonMode('side-by-side')}>并排对比</button><button className={comparisonMode === 'split' ? 'selected' : ''} onClick={() => setComparisonMode('split')}>分割对比</button></div>{comparisonMode === 'side-by-side' ? <div ref={stageRef} className="comparison-stage side-by-side-stage" onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(3, Math.max(1, value + (event.deltaY < 0 ? 0.1 : -0.1)))) }}><div className="comparison-pane"><img src={item.previewUrl} alt="原图" style={imageTransform} /><span>原图 · {formatBytes(item.originalSize)}</span></div><div className="comparison-pane"><img src={item.outputUrl} alt="压缩后" style={imageTransform} /><span>压缩后 · {formatBytes(item.outputSize ?? 0)}</span></div><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div> : <div ref={stageRef} className="comparison-stage split-stage" onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(3, Math.max(1, value + (event.deltaY < 0 ? 0.1 : -0.1)))) }}><img src={item.previewUrl} alt="原图" style={imageTransform} /><div className="split-output" style={{ width: '100%', clipPath: `inset(0 ${100 - splitPosition}% 0 0)` }}><img src={item.outputUrl} alt="压缩后" style={imageTransform} /></div><div className={`split-divider ${draggingSplit ? 'split-divider-dragging' : ''}`} style={{ left: `${splitPosition}%` }}><button className="split-handle" type="button" aria-label="拖动对比位置，使用左右方向键微调" onPointerDown={(event) => { event.preventDefault(); setDraggingSplit(true) }} onKeyDown={(event) => { if (event.key === 'ArrowLeft') setSplitPosition((value) => Math.max(5, value - 2)); if (event.key === 'ArrowRight') setSplitPosition((value) => Math.min(95, value + 2)) }}><span>↔</span></button></div><span className="comparison-tag tag-original">原图</span><span className="comparison-tag tag-output">压缩后</span><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div>}<div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载 {item.outputFormat}</button></div></div></div>
+  const updateZoom = (delta: number) => {
+    setZoom((value) => {
+      const next = Math.min(3, Math.max(1, Number((value + delta).toFixed(2))))
+      return next
+    })
+  }
+
+  const handleStagePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('.split-handle')) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (activePointersRef.current.size === 2) {
+      const [first, second] = [...activePointersRef.current.values()]
+      pinchStartRef.current = { distance: Math.hypot(second.x - first.x, second.y - first.y), zoom }
+      panStartRef.current = null
+      setDraggingPan(false)
+      return
+    }
+    if (zoom <= 1) return
+    panStartRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y }
+    setDraggingPan(true)
+  }
+
+  const handleStagePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointersRef.current.has(event.pointerId)) activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (pinchStartRef.current && activePointersRef.current.size >= 2) {
+      const [first, second] = [...activePointersRef.current.values()]
+      const distance = Math.hypot(second.x - first.x, second.y - first.y)
+      setZoom(Math.min(3, Math.max(1, Number((pinchStartRef.current.zoom * distance / pinchStartRef.current.distance).toFixed(2)))))
+      return
+    }
+    const start = panStartRef.current
+    if (!draggingPan || !start || start.pointerId !== event.pointerId) return
+    setPan({ x: start.panX + event.clientX - start.x, y: start.panY + event.clientY - start.y })
+  }
+
+  const stopStagePan = (event: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.delete(event.pointerId)
+    if (activePointersRef.current.size < 2) pinchStartRef.current = null
+    if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null
+    setDraggingPan(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  useEffect(() => {
+    if (zoom <= 1) setPan({ x: 0, y: 0 })
+  }, [zoom])
+
+  const imageTransform = { transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }
+  const stageHandlers = {
+    onPointerDown: handleStagePointerDown,
+    onPointerMove: handleStagePointerMove,
+    onPointerUp: stopStagePan,
+    onPointerCancel: stopStagePan,
+    onWheel: (event: React.WheelEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      updateZoom(event.deltaY < 0 ? 0.1 : -0.1)
+    },
+  }
+  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal comparison-modal" role="dialog" aria-modal="true" aria-label="图片对比预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">COMPARE</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭对比"><X size={18} /></button></div><div className="comparison-switch" role="group" aria-label="对比模式"><button className={comparisonMode === 'side-by-side' ? 'selected' : ''} onClick={() => setComparisonMode('side-by-side')}>并排对比</button><button className={comparisonMode === 'split' ? 'selected' : ''} onClick={() => setComparisonMode('split')}>分割对比</button></div>{comparisonMode === 'side-by-side' ? <div ref={stageRef} className={`comparison-stage side-by-side-stage ${draggingPan ? 'comparison-stage-dragging' : ''}`} {...stageHandlers}><div className="comparison-pane"><img src={item.previewUrl} alt="原图" style={imageTransform} /><span>原图 · {formatBytes(item.originalSize)}</span></div><div className="comparison-pane"><img src={item.outputUrl} alt="压缩后" style={imageTransform} /><span>压缩后 · {formatBytes(item.outputSize ?? 0)}</span></div><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div> : <div ref={stageRef} className={`comparison-stage split-stage ${draggingPan ? 'comparison-stage-dragging' : ''}`} {...stageHandlers}><img src={item.previewUrl} alt="原图" style={imageTransform} /><div className="split-output" style={{ width: '100%', clipPath: `inset(0 ${100 - splitPosition}% 0 0)` }}><img src={item.outputUrl} alt="压缩后" style={imageTransform} /></div><div className={`split-divider ${draggingSplit ? 'split-divider-dragging' : ''}`} style={{ left: `${splitPosition}%` }}><button className="split-handle" type="button" aria-label="拖动对比位置，使用左右方向键微调" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); setSplitFromClientX(event.clientX); setDraggingSplit(true) }} onKeyDown={(event) => { if (event.key === 'ArrowLeft') setSplitPosition((value) => Math.max(5, value - 2)); if (event.key === 'ArrowRight') setSplitPosition((value) => Math.min(95, value + 2)) }}><span>↔</span></button></div><span className="comparison-tag tag-original">原图</span><span className="comparison-tag tag-output">压缩后</span><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div>}<div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载 {item.outputFormat}</button></div></div></div>
 }
 
 export default App
