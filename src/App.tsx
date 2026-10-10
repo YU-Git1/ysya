@@ -272,8 +272,7 @@ function App() {
           >
             <input ref={inputRef} type="file" accept={ACCEPTED_TYPES.join(',')} multiple hidden onChange={handleInput} />
             <div className="dropzone-art"><CloudUpload size={30} strokeWidth={1.5} /><span className="dropzone-plus">+</span></div>
-            <div className="dropzone-title">拖拽图片到这里</div>
-            <div className="dropzone-subtitle">或点击选择文件</div>
+            <div className="dropzone-title">拖拽或点击选择文件</div>
             <div className="dropzone-meta"><span>支持格式</span><strong>JPG、PNG、WebP</strong><i /> <span>单张文件最大 20 MB</span></div>
           </div>
           <div className="local-processing-note"><LockKeyhole size={13} /> 本地处理 · 图片不会上传到服务器</div>
