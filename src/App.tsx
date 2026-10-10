@@ -279,12 +279,11 @@ function App() {
           <div className="format-selector" aria-label="选择输出格式">
             <span className="format-selector-label">输出格式</span>
             <div className="format-options">
-              {([['original', '保持原格式'], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
+              {([['original', '保持默认'], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
                 <label className={`format-option ${outputFormat === value ? 'format-option-selected' : ''}`} key={value}>
                   <input type="radio" name="output-format" value={value} checked={outputFormat === value} onChange={() => setOutputFormat(value)} />
                   <span className="radio-mark" />
                   <span>{label}</span>
-                  {value === 'original' && <small>默认</small>}
                 </label>
               ))}
             </div>
