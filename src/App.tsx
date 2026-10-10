@@ -28,7 +28,24 @@ import {
 
 type ItemStatus = 'queued' | 'compressing' | 'done' | 'error'
 type OutputFormat = 'original' | 'image/jpeg' | 'image/png' | 'image/webp'
-type Language = 'zh' | 'en'
+type Language = 'zh-CN' | 'zh-TW' | 'en' | 'ja' | 'ko'
+
+type AppCopy = {
+  home: string; navLabel: string; tool: string; how: string; privacy: string; language: string; login: string; menu: string
+  heroTitle: string; heroTitleAccent: string; heroDescription: string; local: string; localDescription: string
+  drop: string; formats: string; max: string; settings: string; output: string; keep: string; level: string
+  workspace: string; done: string; working: string; files: string; fast: string; outputPrefix: string; pause: string; resume: string; waiting: string
+  why: string; whyAccent: string; fastTitle: string; fastCopy: string; privateTitle: string; privateCopy: string; clearTitle: string; clearCopy: string; try: string
+  privacyTitle: string; privacyCopy: string; privacyLink: string; help: string
+}
+
+const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'zh-TW', label: '繁體中文' },
+  { value: 'en', label: 'English' },
+  { value: 'ja', label: '日本語' },
+  { value: 'ko', label: '한국어' },
+]
 
 type ImageItem = {
   id: string
@@ -79,13 +96,54 @@ function getFormatDetails(file: File, outputFormat: OutputFormat) {
 }
 
 function formatLabel(outputFormat: OutputFormat, language: Language) {
-  if (language === 'en') return outputFormat === 'original' ? 'Keep default' : `Convert to ${outputFormat === 'image/jpeg' ? 'JPG' : outputFormat === 'image/png' ? 'PNG' : 'WebP'}`
-  return outputFormat === 'original' ? '保持原格式' : outputFormat === 'image/jpeg' ? '转换为 JPG' : outputFormat === 'image/png' ? '转换为 PNG' : '转换为 WebP'
+  const format = outputFormat === 'image/jpeg' ? 'JPG' : outputFormat === 'image/png' ? 'PNG' : 'WebP'
+  if (language === 'en') return outputFormat === 'original' ? 'Keep default' : `Convert to ${format}`
+  if (language === 'ja') return outputFormat === 'original' ? 'デフォルト' : `${format} に変換`
+  if (language === 'ko') return outputFormat === 'original' ? '기본 유지' : `${format}로 변환`
+  if (language === 'zh-TW') return outputFormat === 'original' ? '保持預設' : `轉換為 ${format}`
+  return outputFormat === 'original' ? '保持默认' : `转换为 ${format}`
 }
 
 function getBatchDownloadLabel(items: ImageItem[], language: Language) {
   const formats = [...new Set(items.map((item) => item.outputFormat).filter(Boolean))]
-  return formats.length === 1 ? (language === 'en' ? `Download all ${formats[0]}` : `全部下载 ${formats[0]}`) : language === 'en' ? 'Download all' : '全部下载'
+  if (language === 'en') return formats.length === 1 ? `Download all ${formats[0]}` : 'Download all'
+  if (language === 'ja') return formats.length === 1 ? `${formats[0]}を一括ダウンロード` : '一括ダウンロード'
+  if (language === 'ko') return formats.length === 1 ? `${formats[0]} 모두 다운로드` : '모두 다운로드'
+  if (language === 'zh-TW') return formats.length === 1 ? `全部下載 ${formats[0]}` : '全部下載'
+  return formats.length === 1 ? `全部下载 ${formats[0]}` : '全部下载'
+}
+
+function getCopy(language: Language): AppCopy {
+  if (language === 'en') return {
+    home: 'QuackPress home', navLabel: 'Main navigation', tool: 'Compressor', how: 'How it works', privacy: 'Privacy', language: 'English', login: 'Sign in', menu: 'Open menu',
+    heroTitle: 'Lighter images,', heroTitleAccent: 'faster web.', heroDescription: 'Choose a format, upload images, preview the result, and download. Everything runs locally in your browser.', local: 'Local processing', localDescription: 'No signup. Your images stay on your device.',
+    drop: 'Drag or click to choose files', formats: 'Formats', max: '20 MB per file', settings: 'Image compression settings', output: 'Output format', keep: 'Keep default', level: 'Compression level', workspace: 'YOUR WORKSPACE', done: 'Compression complete.', working: 'Making images lighter.', files: 'files', fast: 'Local processing, speed first', outputPrefix: 'Output:', pause: 'Pause', resume: 'Resume', waiting: 'Images are being processed in your browser. Please wait before leaving.',
+    why: 'Less waiting,', whyAccent: 'more creating.', fastTitle: 'Fast enough to forget the wait', fastCopy: 'Everything runs in your browser. Your images take no detour through a server.', privateTitle: 'Your images stay private', privateCopy: 'QuackPress processes images locally in your browser. Nothing is uploaded.', clearTitle: 'Small, without visible loss', clearCopy: 'Smart encoding keeps important details while making files meaningfully smaller.', try: 'Try it', privacyTitle: 'Privacy-first compression', privacyCopy: 'No signup and no uploads. Compression and previews stay on your device.', privacyLink: 'Privacy', help: 'Help',
+  }
+  if (language === 'ja') return {
+    home: 'QuackPress ホーム', navLabel: 'メインナビゲーション', tool: '圧縮ツール', how: '使い方', privacy: 'プライバシー', language: '日本語', login: 'ログイン', menu: 'メニューを開く',
+    heroTitle: '画像を軽く、', heroTitleAccent: 'ウェブを速く。', heroDescription: '形式を選び、画像をアップロードして、結果を確認してダウンロード。すべてブラウザ内で処理します。', local: 'ローカル処理', localDescription: '登録不要。画像はデバイスから離れません。',
+    drop: 'ドラッグまたはクリックしてファイルを選択', formats: '対応形式', max: '1ファイル最大 20 MB', settings: '画像圧縮設定', output: '出力形式', keep: 'デフォルト', level: '圧縮レベル', workspace: 'YOUR WORKSPACE', done: '圧縮完了。', working: '画像を軽くしています。', files: 'ファイル', fast: 'ローカル処理、速度優先', outputPrefix: '出力:', pause: '一時停止', resume: '再開', waiting: 'ブラウザで画像を処理中です。完了までお待ちください。',
+    why: '待ち時間を減らし、', whyAccent: '創造を増やす。', fastTitle: '待つことを忘れる速さ', fastCopy: 'すべてブラウザで処理。画像をサーバーへ送信しません。', privateTitle: '画像はデバイス内に', privateCopy: 'QuackPress はブラウザ内で画像を処理します。アップロードはありません。', clearTitle: '見た目を保って軽量化', clearCopy: '重要なディテールを残しながら、ファイルサイズを小さくします。', try: '試す', privacyTitle: 'プライバシー優先の圧縮', privacyCopy: '登録もアップロードも不要。圧縮とプレビューはデバイス内で完結します。', privacyLink: 'プライバシー', help: 'ヘルプ',
+  }
+  if (language === 'ko') return {
+    home: 'QuackPress 홈', navLabel: '주 메뉴', tool: '압축 도구', how: '사용 방법', privacy: '개인정보 보호', language: '한국어', login: '로그인', menu: '메뉴 열기',
+    heroTitle: '이미지는 가볍게,', heroTitleAccent: '웹은 빠르게.', heroDescription: '형식을 선택하고 이미지를 업로드한 뒤 결과를 확인하고 다운로드하세요. 모든 처리는 브라우저에서 진행됩니다.', local: '로컬 처리', localDescription: '가입이 필요 없습니다. 이미지는 기기에 남습니다.',
+    drop: '드래그하거나 클릭하여 파일 선택', formats: '지원 형식', max: '파일당 최대 20 MB', settings: '이미지 압축 설정', output: '출력 형식', keep: '기본 유지', level: '압축 정도', workspace: 'YOUR WORKSPACE', done: '압축 완료.', working: '이미지를 가볍게 만드는 중입니다.', files: '개 파일', fast: '로컬 처리, 빠른 속도', outputPrefix: '출력:', pause: '일시정지', resume: '계속', waiting: '브라우저에서 이미지를 처리 중입니다. 완료될 때까지 기다려 주세요.',
+    why: '기다림은 줄이고,', whyAccent: '창작은 늘리고.', fastTitle: '기다림을 잊을 만큼 빠르게', fastCopy: '모든 처리는 브라우저에서 진행됩니다. 이미지가 서버를 거치지 않습니다.', privateTitle: '이미지는 기기에 안전하게', privateCopy: 'QuackPress는 브라우저에서 이미지를 처리하며 업로드하지 않습니다.', clearTitle: '화질은 유지하고 용량은 줄이고', clearCopy: '중요한 디테일을 유지하면서 파일을 작게 만듭니다.', try: '사용해 보기', privacyTitle: '개인정보 우선 압축', privacyCopy: '가입과 업로드가 필요 없습니다. 압축과 미리보기는 기기에서 처리됩니다.', privacyLink: '개인정보', help: '도움말',
+  }
+  if (language === 'zh-TW') return {
+    home: '壓縮鴨首頁', navLabel: '主導覽', tool: '壓縮工具', how: '運作方式', privacy: '隱私保護', language: '繁體中文', login: '登入', menu: '開啟選單',
+    heroTitle: '圖片變輕，', heroTitleAccent: '網頁更快。', heroDescription: '選擇格式、上傳圖片、預覽結果後直接下載。壓縮過程在瀏覽器本機完成。', local: '本機處理', localDescription: '無需註冊，圖片不會離開你的裝置。',
+    drop: '拖曳或點擊選擇檔案', formats: '支援格式', max: '單一檔案最大 20 MB', settings: '圖片壓縮設定', output: '輸出格式', keep: '保持預設', level: '壓縮程度', workspace: 'YOUR WORKSPACE', done: '壓縮完成。', working: '正在讓圖片變輕。', files: '個檔案', fast: '本機處理，速度優先', outputPrefix: '輸出：', pause: '暫停', resume: '繼續', waiting: '圖片正在瀏覽器中處理，離開頁面前請等待完成',
+    why: '少一點等待，', whyAccent: '多一點創造。', fastTitle: '快得讓人忘記等待', fastCopy: '所有處理都在瀏覽器中完成，圖片不會繞路經過伺服器。', privateTitle: '圖片不離開你的裝置', privateCopy: '壓縮鴨在瀏覽器本機處理圖片，不會上傳。', clearTitle: '保持清晰，檔案更小', clearCopy: '保留重要細節，同時有效縮小檔案。', try: '試用看看', privacyTitle: '隱私優先的壓縮', privacyCopy: '無需註冊或上傳，壓縮與預覽都留在你的裝置上。', privacyLink: '隱私說明', help: '說明中心',
+  }
+  return {
+    home: '压缩鸭首页', navLabel: '主导航', tool: '压缩工具', how: '怎么工作', privacy: '隐私保护', language: '简体中文', login: '登录', menu: '打开菜单',
+    heroTitle: '图片变轻，', heroTitleAccent: '网页更快。', heroDescription: '选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。', local: '本地处理', localDescription: '无需注册，图片不离开你的设备。',
+    drop: '拖拽或点击选择文件', formats: '支持格式', max: '单张文件最大 20 MB', settings: '图片压缩设置', output: '输出格式', keep: '保持默认', level: '压缩程度', workspace: 'YOUR WORKSPACE', done: '压缩完成。', working: '正在让图片变轻。', files: '个文件', fast: '本地处理，速度优先', outputPrefix: '输出：', pause: '暂停', resume: '继续', waiting: '图片正在浏览器中处理，离开页面前请等待完成',
+    why: '少一点等待，', whyAccent: '多一点创造。', fastTitle: '快得让人忘记等待', fastCopy: '所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。', privateTitle: '图片不离开你的设备', privateCopy: '压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。', clearTitle: '清晰，肉眼看不出差别', clearCopy: '智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。', try: '试试看', privacyTitle: '隐私优先的压缩', privacyCopy: '无需注册，无需上传到服务器。压缩和预览都留在你的设备上。', privacyLink: '隐私说明', help: '帮助中心',
+  }
 }
 
 function App() {
@@ -99,8 +157,9 @@ function App() {
   const [compressionLevel, setCompressionLevel] = useState(1)
   const [activeItem, setActiveItem] = useState<ImageItem | null>(null)
   const [notice, setNotice] = useState('')
-  const [language, setLanguage] = useState<Language>('zh')
+  const [language, setLanguage] = useState<Language>('zh-CN')
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isNavVisible, setIsNavVisible] = useState(true)
   const navHideTimerRef = useRef<number | null>(null)
 
@@ -127,17 +186,7 @@ function App() {
   const allDone = hasWork && items.every((item) => item.status === 'done' || item.status === 'error')
   const totalOriginal = items.reduce((sum, item) => sum + item.originalSize, 0)
   const totalOutput = completedItems.reduce((sum, item) => sum + (item.outputSize ?? 0), 0)
-  const copy = language === 'en' ? {
-    home: 'QuackPress home', navLabel: 'Main navigation', tool: 'Compressor', how: 'How it works', privacy: 'Privacy', language: 'English', login: 'Sign in', menu: 'Open menu',
-    heroTitle: 'Lighter images,', heroTitleAccent: 'faster web.', heroDescription: 'Choose a format, upload images, preview the result, and download. Everything runs locally in your browser.', local: 'Local processing', localDescription: 'No signup. Your images stay on your device.',
-    drop: 'Drag or click to choose files', formats: 'Formats', max: '20 MB per file', settings: 'Image compression settings', output: 'Output format', keep: 'Keep default', level: 'Compression level', workspace: 'YOUR WORKSPACE', done: 'Compression complete.', working: 'Making images lighter.', files: 'files', fast: 'Local processing, speed first', outputPrefix: 'Output:', pause: 'Pause', resume: 'Resume', waiting: 'Images are being processed in your browser. Please wait before leaving.', downloadAll: 'Download all',
-    why: 'Less waiting,', whyAccent: 'more creating.', fastTitle: 'Fast enough to forget the wait', fastCopy: 'Everything runs in your browser. Your images take no detour through a server.', privateTitle: 'Your images stay private', privateCopy: 'QuackPress processes images locally in your browser. Nothing is uploaded.', clearTitle: 'Small, without visible loss', clearCopy: 'Smart encoding keeps important details while making files meaningfully smaller.', try: 'Try it', privacyTitle: 'Privacy-first compression', privacyCopy: 'No signup and no uploads. Compression and previews stay on your device.', privacyLink: 'Privacy', help: 'Help',
-  } : {
-    home: '压缩鸭首页', navLabel: '主导航', tool: '压缩工具', how: '怎么工作', privacy: '隐私保护', language: '中文', login: '登录', menu: '打开菜单',
-    heroTitle: '图片变轻，', heroTitleAccent: '网页更快。', heroDescription: '选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。', local: '本地处理', localDescription: '无需注册，图片不离开你的设备。',
-    drop: '拖拽或点击选择文件', formats: '支持格式', max: '单张文件最大 20 MB', settings: '图片压缩设置', output: '输出格式', keep: '保持默认', level: '压缩程度', workspace: 'YOUR WORKSPACE', done: '压缩完成。', working: '正在让图片变轻。', files: '个文件', fast: '本地处理，速度优先', outputPrefix: '输出：', pause: '暂停', resume: '继续', waiting: '图片正在浏览器中处理，离开页面前请等待完成', downloadAll: '全部下载',
-    why: '少一点等待，', whyAccent: '多一点创造。', fastTitle: '快得让人忘记等待', fastCopy: '所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。', privateTitle: '图片不离开你的设备', privateCopy: '压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。', clearTitle: '清晰，肉眼看不出差别', clearCopy: '智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。', try: '试试看', privacyTitle: '隐私优先的压缩', privacyCopy: '无需注册，无需上传到服务器。压缩和预览都留在你的设备上。', privacyLink: '隐私说明', help: '帮助中心',
-  }
+  const copy = getCopy(language)
 
   const updateItem = useCallback((id: string, update: Partial<ImageItem>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...update } : item)))
@@ -265,7 +314,7 @@ function App() {
       <header className={`topbar ${isNavVisible || isMobileNavOpen ? '' : 'topbar-hidden'}`}>
         <a className="brand" href="#top" aria-label={copy.home} onClick={() => setIsMobileNavOpen(false)}>
           <img className="brand-mark" src="/duck-mark.svg" alt="" />
-          <span className="brand-name">{language === 'en' ? 'QuackPress' : '压缩鸭'}<span className="brand-english">{language === 'en' ? 'IMAGE TOOL' : 'QUACKPRESS'}</span></span>
+          <span className="brand-name">{language === 'zh-CN' ? '压缩鸭' : language === 'zh-TW' ? '壓縮鴨' : 'QuackPress'}<span className="brand-english">{language === 'en' ? 'IMAGE TOOL' : 'QUACKPRESS'}</span></span>
         </a>
         <nav className="desktop-nav" aria-label={copy.navLabel}>
           <a className="nav-active" href="#compress">{copy.tool}</a>
@@ -273,7 +322,12 @@ function App() {
           <a href="#privacy">{copy.privacy}</a>
         </nav>
         <div className="topbar-actions">
-          <button className="language-button" type="button" onClick={() => setLanguage((value) => value === 'zh' ? 'en' : 'zh')} aria-label={language === 'zh' ? 'Switch to English' : '切换为中文'}><span>{copy.language}</span><ChevronDown size={14} /></button>
+          <div className="language-menu">
+            <button className="language-button" type="button" onClick={() => setIsLanguageMenuOpen((value) => !value)} aria-expanded={isLanguageMenuOpen} aria-haspopup="listbox"><span>{copy.language}</span><ChevronDown size={14} /></button>
+            {isLanguageMenuOpen && <div className="language-options" role="listbox" aria-label="Language">
+              {LANGUAGE_OPTIONS.map((option) => <button key={option.value} type="button" className={option.value === language ? 'selected' : ''} onClick={() => { setLanguage(option.value); setIsLanguageMenuOpen(false) }}>{option.label}</button>)}
+            </div>}
+          </div>
           <button className="ghost-button login-button" type="button">{copy.login}</button>
           <button className="mobile-menu" type="button" aria-label={copy.menu} aria-expanded={isMobileNavOpen} onClick={() => { setIsMobileNavOpen((value) => !value); setIsNavVisible(true) }}><Menu size={20} /></button>
         </div>
@@ -281,7 +335,6 @@ function App() {
           <a href="#compress" onClick={() => setIsMobileNavOpen(false)}>{copy.tool}</a>
           <a href="#how-it-works" onClick={() => setIsMobileNavOpen(false)}>{copy.how}</a>
           <a href="#privacy" onClick={() => setIsMobileNavOpen(false)}>{copy.privacy}</a>
-          <button type="button" onClick={() => { setLanguage((value) => value === 'zh' ? 'en' : 'zh'); setIsMobileNavOpen(false) }}>{language === 'zh' ? 'English' : '中文'}</button>
         </nav>}
       </header>
 
@@ -339,7 +392,7 @@ function App() {
                   {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> {getBatchDownloadLabel(completedItems, language)}</button>}
                 </div>
               </div>
-              <div className="queue-summary"><span><FileStack size={15} /> {items.length} {copy.files}</span><span><Zap size={15} /> {allDone ? `${language === 'en' ? 'Saved' : '共节省'} ${formatSavings(totalOriginal, totalOutput)}` : copy.fast}</span><span className="format-summary">{copy.outputPrefix} {formatLabel(outputFormat, language)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? copy.resume : copy.pause}</button></div>
+              <div className="queue-summary"><span><FileStack size={15} /> {items.length} {copy.files}</span><span><Zap size={15} /> {allDone ? `${language === 'en' ? 'Saved' : language === 'ja' ? '削減' : language === 'ko' ? '절약' : language === 'zh-TW' ? '節省' : '共节省'} ${formatSavings(totalOriginal, totalOutput)}` : copy.fast}</span><span className="format-summary">{copy.outputPrefix} {formatLabel(outputFormat, language)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? copy.resume : copy.pause}</button></div>
               <div className="items-list">
                 {items.map((item) => <ImageRow key={item.id} item={item} language={language} onRemove={removeItem} onRetry={retryItem} onDownload={downloadItem} onPreview={setActiveItem} />)}
               </div>
@@ -361,20 +414,21 @@ function App() {
         <section className="privacy-strip" id="privacy"><div className="privacy-icon"><LockKeyhole size={22} /></div><div><strong>{copy.privacyTitle}</strong><span>{copy.privacyCopy}</span></div><CircleHelp size={18} className="privacy-help" /></section>
       </main>
 
-      <footer className="footer"><span>© 2026 QuackPress</span><span>{language === 'en' ? 'Made for the web, with care.' : '为网页而作，用心压缩。'}</span><div><a href="#privacy">{copy.privacyLink}</a><a href="#how-it-works">{copy.help}</a></div></footer>
+      <footer className="footer"><span>© 2026 QuackPress</span><span>{language === 'en' ? 'Made for the web, with care.' : language === 'ja' ? 'ウェブのために、丁寧に。' : language === 'ko' ? '웹을 위해 정성껏 만들었습니다.' : language === 'zh-TW' ? '為網頁而作，用心壓縮。' : '为网页而作，用心压缩。'}</span><div><a href="#privacy">{copy.privacyLink}</a><a href="#how-it-works">{copy.help}</a></div></footer>
       {activeItem && <PreviewModal item={activeItem} language={language} onClose={() => setActiveItem(null)} onDownload={downloadItem} />}
     </div>
   )
 }
 
 function ImageRow({ item, language, onRemove, onRetry, onDownload, onPreview }: { item: ImageItem; language: Language; onRemove: (id: string) => void; onRetry: (item: ImageItem) => void; onDownload: (item: ImageItem) => void; onPreview: (item: ImageItem) => void }) {
-  const statusCopy = language === 'en' ? { queued: 'Queued', compressing: 'Compressing', done: 'Done', error: 'Failed' } : { queued: '排队中', compressing: '压缩中', done: '已完成', error: '处理失败' }
+  const statusCopy = language === 'en' ? { queued: 'Queued', compressing: 'Compressing', done: 'Done', error: 'Failed' } : language === 'ja' ? { queued: '待機中', compressing: '圧縮中', done: '完了', error: '失敗' } : language === 'ko' ? { queued: '대기 중', compressing: '압축 중', done: '완료', error: '실패' } : language === 'zh-TW' ? { queued: '排隊中', compressing: '壓縮中', done: '已完成', error: '處理失敗' } : { queued: '排队中', compressing: '压缩中', done: '已完成', error: '处理失败' }
+  const action = language === 'en' ? { compare: 'Compare', download: 'Download', retry: 'Retry', remove: 'Remove', saved: 'saved' } : language === 'ja' ? { compare: '比較', download: 'ダウンロード', retry: '再試行', remove: '削除', saved: '削減' } : language === 'ko' ? { compare: '비교', download: '다운로드', retry: '다시 시도', remove: '삭제', saved: '절약' } : language === 'zh-TW' ? { compare: '比較', download: '下載', retry: '重試', remove: '刪除', saved: '節省空間' } : { compare: '对比', download: '下载', retry: '重试', remove: '删除', saved: '节省空间' }
   return <div className={`image-row status-${item.status}`}>
     <button className="thumb-button" onClick={() => item.status === 'done' && onPreview(item)} aria-label={`${item.file.name} 预览`}><img src={item.previewUrl} alt="" /><span className="thumb-overlay"><MoreHorizontal size={17} /></span></button>
     <div className="image-info"><div className="image-name" title={item.file.name}>{item.file.name}</div><div className="image-meta">{formatBytes(item.originalSize)} {item.width && `· ${item.width} × ${item.height}`} {item.status === 'done' && <><span className="meta-arrow">→</span> {formatBytes(item.outputSize ?? 0)} · {item.outputFormat}</>}</div></div>
     <div className="row-status"><div className="status-line"><span className={`status-dot status-dot-${item.status}`} />{statusCopy[item.status]}</div>{item.status === 'compressing' && <div className="mini-progress"><span style={{ width: `${item.progress}%` }} /></div>}{item.status === 'error' && <span className="error-copy">{item.error}</span>}</div>
-    <div className="saving-cell">{item.status === 'done' ? <><strong>↓ {formatSavings(item.originalSize, item.outputSize)}</strong><span>{language === 'en' ? 'saved' : '节省空间'}</span></> : <span>—</span>}</div>
-    <div className="row-actions">{item.status === 'done' && <><button className="compare-button" onClick={() => onPreview(item)} aria-label={`${language === 'en' ? 'Compare' : '对比'} ${item.file.name}`}><ArrowLeftRight size={15} /><span>{language === 'en' ? 'Compare' : '对比'}</span></button><button className="download-button" onClick={() => onDownload(item)} aria-label={`${language === 'en' ? 'Download' : '下载'} ${item.outputFormat ?? 'image'}`}><ArrowDownToLine size={16} /><span className="download-label">{language === 'en' ? 'Download' : '下载'} {item.outputFormat ?? '图片'}</span></button></>}{item.status === 'error' && <button className="retry-button" onClick={() => onRetry(item)}><RefreshCw size={15} /> {language === 'en' ? 'Retry' : '重试'}</button>}<button className="remove-button" onClick={() => onRemove(item.id)} aria-label={`${language === 'en' ? 'Remove' : '删除'} ${item.file.name}`} title={language === 'en' ? 'Remove' : '删除'}><Trash2 size={16} /></button></div>
+    <div className="saving-cell">{item.status === 'done' ? <><strong>↓ {formatSavings(item.originalSize, item.outputSize)}</strong><span>{action.saved}</span></> : <span>—</span>}</div>
+    <div className="row-actions">{item.status === 'done' && <><button className="compare-button" onClick={() => onPreview(item)} aria-label={`${action.compare} ${item.file.name}`}><ArrowLeftRight size={15} /><span>{action.compare}</span></button><button className="download-button" onClick={() => onDownload(item)} aria-label={`${action.download} ${item.outputFormat ?? 'image'}`}><ArrowDownToLine size={16} /><span className="download-label">{action.download} {item.outputFormat ?? (language === 'en' ? 'image' : '图片')}</span></button></>}{item.status === 'error' && <button className="retry-button" onClick={() => onRetry(item)}><RefreshCw size={15} /> {action.retry}</button>}<button className="remove-button" onClick={() => onRemove(item.id)} aria-label={`${action.remove} ${item.file.name}`} title={action.remove}><Trash2 size={16} /></button></div>
   </div>
 }
 
