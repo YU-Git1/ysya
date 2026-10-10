@@ -276,22 +276,23 @@ function App() {
             <div className="dropzone-title">拖拽或点击选择文件</div>
             <div className="dropzone-meta"><span>支持格式</span><strong>JPG、PNG、WebP</strong><i /> <span>单张文件最大 20 MB</span></div>
           </div>
-          <div className="format-selector" aria-label="选择输出格式">
-            <span className="format-selector-label">输出格式</span>
-            <div className="format-options">
-              {([['original', '保持默认'], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
-                <label className={`format-option ${outputFormat === value ? 'format-option-selected' : ''}`} key={value}>
-                  <input type="radio" name="output-format" value={value} checked={outputFormat === value} onChange={() => setOutputFormat(value)} />
-                  <span className="radio-mark" />
-                  <span>{label}</span>
-                </label>
-              ))}
+          <div className="settings-panel" aria-label="图片压缩设置">
+            <div className="format-selector" aria-label="选择输出格式">
+              <span className="format-selector-label">输出格式</span>
+              <div className="format-options">
+                {([['original', '保持默认'], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
+                  <label className={`format-option ${outputFormat === value ? 'format-option-selected' : ''}`} key={value}>
+                    <input type="radio" name="output-format" value={value} checked={outputFormat === value} onChange={() => setOutputFormat(value)} />
+                    <span className="radio-mark" />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="compression-level" aria-label="压缩程度">
-            <div className="compression-level-heading"><span>压缩程度</span><strong>{compressionLevel}</strong></div>
-            <input className="compression-range" type="range" min="1" max="5" step="1" value={compressionLevel} onChange={(event) => setCompressionLevel(Number(event.target.value))} aria-valuemin={1} aria-valuemax={5} aria-valuenow={compressionLevel} />
-            {outputFormat === 'image/png' && <p className="compression-level-note">PNG 使用无损编码，档位仅影响编码策略，体积缩减可能低于标示值。</p>}
+            <div className="compression-level" aria-label="压缩程度">
+              <div className="compression-level-heading"><span>压缩程度</span><strong>{compressionLevel}</strong></div>
+              <input className="compression-range" type="range" min="1" max="5" step="1" value={compressionLevel} onChange={(event) => setCompressionLevel(Number(event.target.value))} aria-valuemin={1} aria-valuemax={5} aria-valuenow={compressionLevel} />
+            </div>
           </div>
           {hasWork && (
             <div className="queue-panel">
