@@ -28,6 +28,7 @@ import {
 
 type ItemStatus = 'queued' | 'compressing' | 'done' | 'error'
 type OutputFormat = 'original' | 'image/jpeg' | 'image/png' | 'image/webp'
+type Language = 'zh' | 'en'
 
 type ImageItem = {
   id: string
@@ -77,13 +78,14 @@ function getFormatDetails(file: File, outputFormat: OutputFormat) {
   return { mime: outputFormat, quality: outputFormat === 'image/png' ? undefined : outputFormat === 'image/jpeg' ? 0.84 : 0.78, label: outputFormat === 'image/jpeg' ? 'JPG' : outputFormat === 'image/png' ? 'PNG' : 'WebP' }
 }
 
-function formatLabel(outputFormat: OutputFormat) {
+function formatLabel(outputFormat: OutputFormat, language: Language) {
+  if (language === 'en') return outputFormat === 'original' ? 'Keep default' : `Convert to ${outputFormat === 'image/jpeg' ? 'JPG' : outputFormat === 'image/png' ? 'PNG' : 'WebP'}`
   return outputFormat === 'original' ? '保持原格式' : outputFormat === 'image/jpeg' ? '转换为 JPG' : outputFormat === 'image/png' ? '转换为 PNG' : '转换为 WebP'
 }
 
-function getBatchDownloadLabel(items: ImageItem[]) {
+function getBatchDownloadLabel(items: ImageItem[], language: Language) {
   const formats = [...new Set(items.map((item) => item.outputFormat).filter(Boolean))]
-  return formats.length === 1 ? `全部下载 ${formats[0]}` : '全部下载'
+  return formats.length === 1 ? (language === 'en' ? `Download all ${formats[0]}` : `全部下载 ${formats[0]}`) : language === 'en' ? 'Download all' : '全部下载'
 }
 
 function App() {
@@ -97,16 +99,45 @@ function App() {
   const [compressionLevel, setCompressionLevel] = useState(1)
   const [activeItem, setActiveItem] = useState<ImageItem | null>(null)
   const [notice, setNotice] = useState('')
+  const [language, setLanguage] = useState<Language>('zh')
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [isNavVisible, setIsNavVisible] = useState(true)
+  const navHideTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     itemsRef.current = items
   }, [items])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsNavVisible(true)
+      if (navHideTimerRef.current !== null) window.clearTimeout(navHideTimerRef.current)
+      if (window.scrollY <= 8) return
+      navHideTimerRef.current = window.setTimeout(() => setIsNavVisible(false), 900)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (navHideTimerRef.current !== null) window.clearTimeout(navHideTimerRef.current)
+    }
+  }, [])
 
   const completedItems = useMemo(() => items.filter((item) => item.status === 'done'), [items])
   const hasWork = items.length > 0
   const allDone = hasWork && items.every((item) => item.status === 'done' || item.status === 'error')
   const totalOriginal = items.reduce((sum, item) => sum + item.originalSize, 0)
   const totalOutput = completedItems.reduce((sum, item) => sum + (item.outputSize ?? 0), 0)
+  const copy = language === 'en' ? {
+    home: 'QuackPress home', navLabel: 'Main navigation', tool: 'Compressor', how: 'How it works', privacy: 'Privacy', language: 'English', login: 'Sign in', menu: 'Open menu',
+    heroTitle: 'Lighter images,', heroTitleAccent: 'faster web.', heroDescription: 'Choose a format, upload images, preview the result, and download. Everything runs locally in your browser.', local: 'Local processing', localDescription: 'No signup. Your images stay on your device.',
+    drop: 'Drag or click to choose files', formats: 'Formats', max: '20 MB per file', settings: 'Image compression settings', output: 'Output format', keep: 'Keep default', level: 'Compression level', workspace: 'YOUR WORKSPACE', done: 'Compression complete.', working: 'Making images lighter.', files: 'files', fast: 'Local processing, speed first', outputPrefix: 'Output:', pause: 'Pause', resume: 'Resume', waiting: 'Images are being processed in your browser. Please wait before leaving.', downloadAll: 'Download all',
+    why: 'Less waiting,', whyAccent: 'more creating.', fastTitle: 'Fast enough to forget the wait', fastCopy: 'Everything runs in your browser. Your images take no detour through a server.', privateTitle: 'Your images stay private', privateCopy: 'QuackPress processes images locally in your browser. Nothing is uploaded.', clearTitle: 'Small, without visible loss', clearCopy: 'Smart encoding keeps important details while making files meaningfully smaller.', try: 'Try it', privacyTitle: 'Privacy-first compression', privacyCopy: 'No signup and no uploads. Compression and previews stay on your device.', privacyLink: 'Privacy', help: 'Help',
+  } : {
+    home: '压缩鸭首页', navLabel: '主导航', tool: '压缩工具', how: '怎么工作', privacy: '隐私保护', language: '中文', login: '登录', menu: '打开菜单',
+    heroTitle: '图片变轻，', heroTitleAccent: '网页更快。', heroDescription: '选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。', local: '本地处理', localDescription: '无需注册，图片不离开你的设备。',
+    drop: '拖拽或点击选择文件', formats: '支持格式', max: '单张文件最大 20 MB', settings: '图片压缩设置', output: '输出格式', keep: '保持默认', level: '压缩程度', workspace: 'YOUR WORKSPACE', done: '压缩完成。', working: '正在让图片变轻。', files: '个文件', fast: '本地处理，速度优先', outputPrefix: '输出：', pause: '暂停', resume: '继续', waiting: '图片正在浏览器中处理，离开页面前请等待完成', downloadAll: '全部下载',
+    why: '少一点等待，', whyAccent: '多一点创造。', fastTitle: '快得让人忘记等待', fastCopy: '所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。', privateTitle: '图片不离开你的设备', privateCopy: '压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。', clearTitle: '清晰，肉眼看不出差别', clearCopy: '智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。', try: '试试看', privacyTitle: '隐私优先的压缩', privacyCopy: '无需注册，无需上传到服务器。压缩和预览都留在你的设备上。', privacyLink: '隐私说明', help: '帮助中心',
+  }
 
   const updateItem = useCallback((id: string, update: Partial<ImageItem>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...update } : item)))
@@ -129,10 +160,10 @@ function App() {
           status: 'done',
         })
       } catch {
-        updateItem(item.id, { status: 'error', error: '图片处理失败，请重试' })
+        updateItem(item.id, { status: 'error', error: language === 'en' ? 'Processing failed. Please retry.' : '图片处理失败，请重试' })
       }
     },
-    [compressionLevel, outputFormat, updateItem],
+    [compressionLevel, language, outputFormat, updateItem],
   )
 
   const startQueued = useCallback(
@@ -149,11 +180,11 @@ function App() {
       const errors: string[] = []
       files.slice(0, remaining).forEach((file) => {
         if (!ACCEPTED_TYPES.includes(file.type)) {
-          errors.push(`${file.name} 格式不支持`)
+          errors.push(language === 'en' ? `${file.name}: unsupported format` : `${file.name} 格式不支持`)
           return
         }
         if (file.size > MAX_SIZE) {
-          errors.push(`${file.name} 超过 20 MB`)
+          errors.push(language === 'en' ? `${file.name}: over 20 MB` : `${file.name} 超过 20 MB`)
           return
         }
         const item: ImageItem = {
@@ -166,13 +197,13 @@ function App() {
         }
         accepted.push(item)
       })
-      if (files.length > remaining) errors.push(`单批最多处理 ${MAX_FILES} 张图片`)
+      if (files.length > remaining) errors.push(language === 'en' ? `Up to ${MAX_FILES} images per batch` : `单批最多处理 ${MAX_FILES} 张图片`)
       if (errors.length) setNotice(errors[0])
       if (!accepted.length) return
       setItems((current) => [...current, ...accepted])
       startQueued(accepted)
     },
-    [items.length, startQueued],
+    [items.length, language, startQueued],
   )
 
   const handleInput = (event: ChangeEvent<HTMLInputElement>) => {
@@ -231,30 +262,36 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="压缩鸭首页">
+      <header className={`topbar ${isNavVisible || isMobileNavOpen ? '' : 'topbar-hidden'}`}>
+        <a className="brand" href="#top" aria-label={copy.home} onClick={() => setIsMobileNavOpen(false)}>
           <img className="brand-mark" src="/duck-mark.svg" alt="" />
-          <span className="brand-name">压缩鸭<span className="brand-english">QUACKPRESS</span></span>
+          <span className="brand-name">{language === 'en' ? 'QuackPress' : '压缩鸭'}<span className="brand-english">{language === 'en' ? 'IMAGE TOOL' : 'QUACKPRESS'}</span></span>
         </a>
-        <nav className="desktop-nav" aria-label="主导航">
-          <a className="nav-active" href="#compress">压缩工具</a>
-          <a href="#how-it-works">怎么工作</a>
-          <a href="#privacy">隐私保护</a>
+        <nav className="desktop-nav" aria-label={copy.navLabel}>
+          <a className="nav-active" href="#compress">{copy.tool}</a>
+          <a href="#how-it-works">{copy.how}</a>
+          <a href="#privacy">{copy.privacy}</a>
         </nav>
         <div className="topbar-actions">
-          <button className="language-button" type="button"><span>中文</span><ChevronDown size={14} /></button>
-          <button className="ghost-button login-button" type="button">登录</button>
-          <button className="mobile-menu" type="button" aria-label="打开菜单"><Menu size={20} /></button>
+          <button className="language-button" type="button" onClick={() => setLanguage((value) => value === 'zh' ? 'en' : 'zh')} aria-label={language === 'zh' ? 'Switch to English' : '切换为中文'}><span>{copy.language}</span><ChevronDown size={14} /></button>
+          <button className="ghost-button login-button" type="button">{copy.login}</button>
+          <button className="mobile-menu" type="button" aria-label={copy.menu} aria-expanded={isMobileNavOpen} onClick={() => { setIsMobileNavOpen((value) => !value); setIsNavVisible(true) }}><Menu size={20} /></button>
         </div>
+        {isMobileNavOpen && <nav className="mobile-nav-panel" aria-label={copy.navLabel}>
+          <a href="#compress" onClick={() => setIsMobileNavOpen(false)}>{copy.tool}</a>
+          <a href="#how-it-works" onClick={() => setIsMobileNavOpen(false)}>{copy.how}</a>
+          <a href="#privacy" onClick={() => setIsMobileNavOpen(false)}>{copy.privacy}</a>
+          <button type="button" onClick={() => { setLanguage((value) => value === 'zh' ? 'en' : 'zh'); setIsMobileNavOpen(false) }}>{language === 'zh' ? 'English' : '中文'}</button>
+        </nav>}
       </header>
 
       <main id="top">
         <section className="hero-section" id="intro">
           <div className="hero-copy">
             <div className="eyebrow"><span className="eyebrow-line" /> QUACKPRESS IMAGE TOOL</div>
-            <h1>图片变轻，<br /><em>网页更快。</em></h1>
-            <p className="hero-description">选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。</p>
-            <div className="hero-proof"><span className="local-proof"><LockKeyhole size={13} /> 本地处理</span><span>无需注册，图片不离开你的设备</span></div>
+            <h1>{copy.heroTitle}<br /><em>{copy.heroTitleAccent}</em></h1>
+            <p className="hero-description">{copy.heroDescription}</p>
+            <div className="hero-proof"><span className="local-proof"><LockKeyhole size={13} /> {copy.local}</span><span>{copy.localDescription}</span></div>
           </div>
           <div className="hero-aside"><span className="aside-number">01</span><span className="aside-label">DROP<br />YOUR FILES<br />HERE</span><span className="aside-arrow">↘</span></div>
         </section>
@@ -273,14 +310,14 @@ function App() {
           >
             <input ref={inputRef} type="file" accept={ACCEPTED_TYPES.join(',')} multiple hidden onChange={handleInput} />
             <div className="dropzone-art"><CloudUpload size={30} strokeWidth={1.5} /><span className="dropzone-plus">+</span></div>
-            <div className="dropzone-title">拖拽或点击选择文件</div>
-            <div className="dropzone-meta"><span>支持格式</span><strong>JPG、PNG、WebP</strong><i /> <span>单张文件最大 20 MB</span></div>
+            <div className="dropzone-title">{copy.drop}</div>
+            <div className="dropzone-meta"><span>{copy.formats}</span><strong>JPG, PNG, WebP</strong><i /> <span>{copy.max}</span></div>
           </div>
-          <div className="settings-panel" aria-label="图片压缩设置">
-            <div className="format-selector" aria-label="选择输出格式">
-              <span className="format-selector-label">输出格式</span>
+          <div className="settings-panel" aria-label={copy.settings}>
+            <div className="format-selector" aria-label={copy.output}>
+              <span className="format-selector-label">{copy.output}</span>
               <div className="format-options">
-                {([['original', '保持默认'], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
+                {([['original', copy.keep], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
                   <label className={`format-option ${outputFormat === value ? 'format-option-selected' : ''}`} key={value}>
                     <input type="radio" name="output-format" value={value} checked={outputFormat === value} onChange={() => setOutputFormat(value)} />
                     <span className="radio-mark" />
@@ -289,63 +326,63 @@ function App() {
                 ))}
               </div>
             </div>
-            <div className="compression-level" aria-label="压缩程度">
-              <div className="compression-level-heading"><span>压缩程度</span><strong>{compressionLevel}</strong></div>
+            <div className="compression-level" aria-label={copy.level}>
+              <div className="compression-level-heading"><span>{copy.level}</span><strong>{compressionLevel}</strong></div>
               <input className="compression-range" type="range" min="1" max="5" step="1" value={compressionLevel} onChange={(event) => setCompressionLevel(Number(event.target.value))} aria-valuemin={1} aria-valuemax={5} aria-valuenow={compressionLevel} />
             </div>
           </div>
           {hasWork && (
             <div className="queue-panel">
               <div className="queue-header">
-                <div><span className="section-kicker">YOUR WORKSPACE</span><h2>{allDone ? '压缩完成。' : '正在让图片变轻。'}</h2></div>
+                <div><span className="section-kicker">{copy.workspace}</span><h2>{allDone ? copy.done : copy.working}</h2></div>
                 <div className="queue-actions">
-                  {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> {getBatchDownloadLabel(completedItems)}</button>}
+                  {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> {getBatchDownloadLabel(completedItems, language)}</button>}
                 </div>
               </div>
-              <div className="queue-summary"><span><FileStack size={15} /> {items.length} 个文件</span><span><Zap size={15} /> {allDone ? `共节省 ${formatSavings(totalOriginal, totalOutput)}` : '本地处理，速度优先'}</span><span className="format-summary">输出：{formatLabel(outputFormat)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? '继续' : '暂停'}</button></div>
+              <div className="queue-summary"><span><FileStack size={15} /> {items.length} {copy.files}</span><span><Zap size={15} /> {allDone ? `${language === 'en' ? 'Saved' : '共节省'} ${formatSavings(totalOriginal, totalOutput)}` : copy.fast}</span><span className="format-summary">{copy.outputPrefix} {formatLabel(outputFormat, language)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? copy.resume : copy.pause}</button></div>
               <div className="items-list">
-                {items.map((item) => <ImageRow key={item.id} item={item} onRemove={removeItem} onRetry={retryItem} onDownload={downloadItem} onPreview={setActiveItem} />)}
+                {items.map((item) => <ImageRow key={item.id} item={item} language={language} onRemove={removeItem} onRetry={retryItem} onDownload={downloadItem} onPreview={setActiveItem} />)}
               </div>
-              {!allDone && <div className="queue-footer"><LoaderCircle className="spin" size={15} /> 图片正在浏览器中处理，离开页面前请等待完成</div>}
+              {!allDone && <div className="queue-footer"><LoaderCircle className="spin" size={15} /> {copy.waiting}</div>}
             </div>
           )}
           {notice && <div className="notice" role="alert"><Info size={16} /> {notice}<button onClick={() => setNotice('')} aria-label="关闭提示"><X size={15} /></button></div>}
         </section>
 
         <section className="features-section" id="how-it-works">
-          <div className="section-heading"><span className="section-kicker">WHY QUACKPRESS</span><h2>少一点等待，<br />多一点创造。</h2></div>
+          <div className="section-heading"><span className="section-kicker">WHY QUACKPRESS</span><h2>{copy.why}<br /><em>{copy.whyAccent}</em></h2></div>
           <div className="feature-grid">
-            <FeatureCard number="01" icon={<Zap size={19} />} title="快得让人忘记等待" copy="所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。" />
-            <FeatureCard number="02" icon={<ShieldCheck size={19} />} title="图片不离开你的设备" copy="压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。" />
-            <FeatureCard number="03" icon={<Sparkles size={19} />} title="清晰，肉眼看不出差别" copy="智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。" />
+            <FeatureCard number="01" icon={<Zap size={19} />} title={copy.fastTitle} copy={copy.fastCopy} tryLabel={copy.try} />
+            <FeatureCard number="02" icon={<ShieldCheck size={19} />} title={copy.privateTitle} copy={copy.privateCopy} tryLabel={copy.try} />
+            <FeatureCard number="03" icon={<Sparkles size={19} />} title={copy.clearTitle} copy={copy.clearCopy} tryLabel={copy.try} />
           </div>
         </section>
 
-        <section className="privacy-strip" id="privacy"><div className="privacy-icon"><LockKeyhole size={22} /></div><div><strong>隐私优先的压缩</strong><span>无需注册，无需上传到服务器。压缩和预览都留在你的设备上。</span></div><CircleHelp size={18} className="privacy-help" /></section>
+        <section className="privacy-strip" id="privacy"><div className="privacy-icon"><LockKeyhole size={22} /></div><div><strong>{copy.privacyTitle}</strong><span>{copy.privacyCopy}</span></div><CircleHelp size={18} className="privacy-help" /></section>
       </main>
 
-      <footer className="footer"><span>© 2026 压缩鸭 QuackPress</span><span>Made for the web, with care.</span><div><a href="#privacy">隐私说明</a><a href="#how-it-works">帮助中心</a></div></footer>
-      {activeItem && <PreviewModal item={activeItem} onClose={() => setActiveItem(null)} onDownload={downloadItem} />}
+      <footer className="footer"><span>© 2026 QuackPress</span><span>{language === 'en' ? 'Made for the web, with care.' : '为网页而作，用心压缩。'}</span><div><a href="#privacy">{copy.privacyLink}</a><a href="#how-it-works">{copy.help}</a></div></footer>
+      {activeItem && <PreviewModal item={activeItem} language={language} onClose={() => setActiveItem(null)} onDownload={downloadItem} />}
     </div>
   )
 }
 
-function ImageRow({ item, onRemove, onRetry, onDownload, onPreview }: { item: ImageItem; onRemove: (id: string) => void; onRetry: (item: ImageItem) => void; onDownload: (item: ImageItem) => void; onPreview: (item: ImageItem) => void }) {
-  const statusCopy = { queued: '排队中', compressing: '压缩中', done: '已完成', error: '处理失败' }
+function ImageRow({ item, language, onRemove, onRetry, onDownload, onPreview }: { item: ImageItem; language: Language; onRemove: (id: string) => void; onRetry: (item: ImageItem) => void; onDownload: (item: ImageItem) => void; onPreview: (item: ImageItem) => void }) {
+  const statusCopy = language === 'en' ? { queued: 'Queued', compressing: 'Compressing', done: 'Done', error: 'Failed' } : { queued: '排队中', compressing: '压缩中', done: '已完成', error: '处理失败' }
   return <div className={`image-row status-${item.status}`}>
     <button className="thumb-button" onClick={() => item.status === 'done' && onPreview(item)} aria-label={`${item.file.name} 预览`}><img src={item.previewUrl} alt="" /><span className="thumb-overlay"><MoreHorizontal size={17} /></span></button>
     <div className="image-info"><div className="image-name" title={item.file.name}>{item.file.name}</div><div className="image-meta">{formatBytes(item.originalSize)} {item.width && `· ${item.width} × ${item.height}`} {item.status === 'done' && <><span className="meta-arrow">→</span> {formatBytes(item.outputSize ?? 0)} · {item.outputFormat}</>}</div></div>
     <div className="row-status"><div className="status-line"><span className={`status-dot status-dot-${item.status}`} />{statusCopy[item.status]}</div>{item.status === 'compressing' && <div className="mini-progress"><span style={{ width: `${item.progress}%` }} /></div>}{item.status === 'error' && <span className="error-copy">{item.error}</span>}</div>
-    <div className="saving-cell">{item.status === 'done' ? <><strong>↓ {formatSavings(item.originalSize, item.outputSize)}</strong><span>节省空间</span></> : <span>—</span>}</div>
-    <div className="row-actions">{item.status === 'done' && <><button className="compare-button" onClick={() => onPreview(item)} aria-label={`对比 ${item.file.name}`}><ArrowLeftRight size={15} /><span>对比</span></button><button className="download-button" onClick={() => onDownload(item)} aria-label={`下载 ${item.outputFormat ?? '图片'}`}><ArrowDownToLine size={16} /><span className="download-label">下载 {item.outputFormat ?? '图片'}</span></button></>}{item.status === 'error' && <button className="retry-button" onClick={() => onRetry(item)}><RefreshCw size={15} /> 重试</button>}<button className="remove-button" onClick={() => onRemove(item.id)} aria-label={`删除 ${item.file.name}`} title="删除"><Trash2 size={16} /></button></div>
+    <div className="saving-cell">{item.status === 'done' ? <><strong>↓ {formatSavings(item.originalSize, item.outputSize)}</strong><span>{language === 'en' ? 'saved' : '节省空间'}</span></> : <span>—</span>}</div>
+    <div className="row-actions">{item.status === 'done' && <><button className="compare-button" onClick={() => onPreview(item)} aria-label={`${language === 'en' ? 'Compare' : '对比'} ${item.file.name}`}><ArrowLeftRight size={15} /><span>{language === 'en' ? 'Compare' : '对比'}</span></button><button className="download-button" onClick={() => onDownload(item)} aria-label={`${language === 'en' ? 'Download' : '下载'} ${item.outputFormat ?? 'image'}`}><ArrowDownToLine size={16} /><span className="download-label">{language === 'en' ? 'Download' : '下载'} {item.outputFormat ?? '图片'}</span></button></>}{item.status === 'error' && <button className="retry-button" onClick={() => onRetry(item)}><RefreshCw size={15} /> {language === 'en' ? 'Retry' : '重试'}</button>}<button className="remove-button" onClick={() => onRemove(item.id)} aria-label={`${language === 'en' ? 'Remove' : '删除'} ${item.file.name}`} title={language === 'en' ? 'Remove' : '删除'}><Trash2 size={16} /></button></div>
   </div>
 }
 
-function FeatureCard({ number, icon, title, copy }: { number: string; icon: ReactNode; title: string; copy: string }) {
-  return <article className="feature-card"><div className="feature-top"><span>{number}</span><div className="feature-icon">{icon}</div></div><h3>{title}</h3><p>{copy}</p><a href="#compress">试试看 <span>↗</span></a></article>
+function FeatureCard({ number, icon, title, copy, tryLabel }: { number: string; icon: ReactNode; title: string; copy: string; tryLabel: string }) {
+  return <article className="feature-card"><div className="feature-top"><span>{number}</span><div className="feature-icon">{icon}</div></div><h3>{title}</h3><p>{copy}</p><a href="#compress">{tryLabel} <span>↗</span></a></article>
 }
 
-function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose: () => void; onDownload: (item: ImageItem) => void }) {
+function PreviewModal({ item, language, onClose, onDownload }: { item: ImageItem; language: Language; onClose: () => void; onDownload: (item: ImageItem) => void }) {
   const [comparisonMode, setComparisonMode] = useState<'side-by-side' | 'split'>('side-by-side')
   const [splitPosition, setSplitPosition] = useState(50)
   const [zoom, setZoom] = useState(1)
@@ -356,6 +393,7 @@ function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose:
   const panStartRef = useRef<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null)
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>())
   const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null)
+  const modalCopy = language === 'en' ? { compare: 'COMPARE', close: 'Close comparison', modes: 'Comparison modes', side: 'Side by side', split: 'Split view', original: 'Original', compressed: 'Compressed', saved: 'saved', size: 'Original dimensions', download: 'Download' } : { compare: 'COMPARE', close: '关闭对比', modes: '对比模式', side: '并排对比', split: '分割对比', original: '原图', compressed: '压缩后', saved: '节省', size: '保持原始尺寸', download: '下载' }
 
   const setSplitFromClientX = useCallback((clientX: number) => {
     const bounds = stageRef.current?.getBoundingClientRect()
@@ -437,7 +475,7 @@ function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose:
       updateZoom(event.deltaY < 0 ? 0.1 : -0.1)
     },
   }
-  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal comparison-modal" role="dialog" aria-modal="true" aria-label="图片对比预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">COMPARE</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭对比"><X size={18} /></button></div><div className="comparison-switch" role="group" aria-label="对比模式"><button className={comparisonMode === 'side-by-side' ? 'selected' : ''} onClick={() => setComparisonMode('side-by-side')}>并排对比</button><button className={comparisonMode === 'split' ? 'selected' : ''} onClick={() => setComparisonMode('split')}>分割对比</button></div>{comparisonMode === 'side-by-side' ? <div ref={stageRef} className={`comparison-stage side-by-side-stage ${draggingPan ? 'comparison-stage-dragging' : ''}`} {...stageHandlers}><div className="comparison-pane"><img src={item.previewUrl} alt="原图" style={imageTransform} /><span>原图 · {formatBytes(item.originalSize)}</span></div><div className="comparison-pane"><img src={item.outputUrl} alt="压缩后" style={imageTransform} /><span>压缩后 · {formatBytes(item.outputSize ?? 0)}</span></div><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div> : <div ref={stageRef} className={`comparison-stage split-stage ${draggingPan ? 'comparison-stage-dragging' : ''}`} {...stageHandlers}><img src={item.outputUrl} alt="压缩后" style={imageTransform} /><div className="split-output" style={{ width: '100%', clipPath: `inset(0 ${100 - splitPosition}% 0 0)` }}><img src={item.previewUrl} alt="原图" style={imageTransform} /></div><div className={`split-divider ${draggingSplit ? 'split-divider-dragging' : ''}`} style={{ left: `${splitPosition}%` }}><button className="split-handle" type="button" aria-label="拖动对比位置，使用左右方向键微调" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); setSplitFromClientX(event.clientX); setDraggingSplit(true) }} onKeyDown={(event) => { if (event.key === 'ArrowLeft') setSplitPosition((value) => Math.max(5, value - 2)); if (event.key === 'ArrowRight') setSplitPosition((value) => Math.min(95, value + 2)) }}><span>↔</span></button></div><span className="comparison-tag tag-original">原图</span><span className="comparison-tag tag-output">压缩后</span><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div>}<div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载 {item.outputFormat}</button></div></div></div>
+  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal comparison-modal" role="dialog" aria-modal="true" aria-label={language === 'en' ? 'Image comparison preview' : '图片对比预览'} onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">{modalCopy.compare}</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label={modalCopy.close}><X size={18} /></button></div><div className="comparison-switch" role="group" aria-label={modalCopy.modes}><button className={comparisonMode === 'side-by-side' ? 'selected' : ''} onClick={() => setComparisonMode('side-by-side')}>{modalCopy.side}</button><button className={comparisonMode === 'split' ? 'selected' : ''} onClick={() => setComparisonMode('split')}>{modalCopy.split}</button></div>{comparisonMode === 'side-by-side' ? <div ref={stageRef} className={`comparison-stage side-by-side-stage ${draggingPan ? 'comparison-stage-dragging' : ''}`} {...stageHandlers}><div className="comparison-pane"><img src={item.previewUrl} alt={modalCopy.original} style={imageTransform} /><span>{modalCopy.original} · {formatBytes(item.originalSize)}</span></div><div className="comparison-pane"><img src={item.outputUrl} alt={modalCopy.compressed} style={imageTransform} /><span>{modalCopy.compressed} · {formatBytes(item.outputSize ?? 0)}</span></div><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div> : <div ref={stageRef} className={`comparison-stage split-stage ${draggingPan ? 'comparison-stage-dragging' : ''}`} {...stageHandlers}><img src={item.outputUrl} alt={modalCopy.compressed} style={imageTransform} /><div className="split-output" style={{ width: '100%', clipPath: `inset(0 ${100 - splitPosition}% 0 0)` }}><img src={item.previewUrl} alt={modalCopy.original} style={imageTransform} /></div><div className={`split-divider ${draggingSplit ? 'split-divider-dragging' : ''}`} style={{ left: `${splitPosition}%` }}><button className="split-handle" type="button" aria-label={language === 'en' ? 'Drag comparison position. Use arrow keys to fine tune.' : '拖动对比位置，使用左右方向键微调'} onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); setSplitFromClientX(event.clientX); setDraggingSplit(true) }} onKeyDown={(event) => { if (event.key === 'ArrowLeft') setSplitPosition((value) => Math.max(5, value - 2)); if (event.key === 'ArrowRight') setSplitPosition((value) => Math.min(95, value + 2)) }}><span>↔</span></button></div><span className="comparison-tag tag-original">{modalCopy.original}</span><span className="comparison-tag tag-output">{modalCopy.compressed}</span><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div>}<div className="modal-footer"><div><strong>{modalCopy.saved} {formatSavings(item.originalSize, item.outputSize)}</strong><span>{modalCopy.size} · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> {modalCopy.download} {item.outputFormat}</button></div></div></div>
 }
 
 export default App
