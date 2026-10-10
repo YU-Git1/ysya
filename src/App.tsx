@@ -6,7 +6,6 @@ import {
   ArrowLeftRight,
   Check,
   ChevronDown,
-  CircleHelp,
   CloudUpload,
   Download,
   FileImage,
@@ -31,12 +30,12 @@ type OutputFormat = 'original' | 'image/jpeg' | 'image/png' | 'image/webp'
 type Language = 'zh-CN' | 'zh-TW' | 'en' | 'ja' | 'ko'
 
 type AppCopy = {
-  home: string; navLabel: string; tool: string; how: string; privacy: string; language: string; login: string; menu: string
+  home: string; navLabel: string; tool: string; how: string; language: string; login: string; menu: string
   heroTitle: string; heroTitleAccent: string; heroDescription: string; local: string; localDescription: string
   drop: string; formats: string; max: string; settings: string; output: string; keep: string; level: string
   workspace: string; done: string; working: string; files: string; fast: string; outputPrefix: string; pause: string; resume: string; waiting: string
   why: string; whyAccent: string; fastTitle: string; fastCopy: string; privateTitle: string; privateCopy: string; clearTitle: string; clearCopy: string; try: string
-  privacyTitle: string; privacyCopy: string; privacyLink: string; help: string
+  help: string
 }
 
 const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
@@ -115,34 +114,34 @@ function getBatchDownloadLabel(items: ImageItem[], language: Language) {
 
 function getCopy(language: Language): AppCopy {
   if (language === 'en') return {
-    home: 'QuackPress home', navLabel: 'Main navigation', tool: 'Compressor', how: 'How it works', privacy: 'Privacy', language: 'English', login: 'Sign in', menu: 'Open menu',
+    home: 'QuackPress home', navLabel: 'Main navigation', tool: 'Compressor', how: 'How it works', language: 'English', login: 'Sign in', menu: 'Open menu',
     heroTitle: 'Lighter images,', heroTitleAccent: 'faster web.', heroDescription: 'Choose a format, upload images, preview the result, and download. Everything runs locally in your browser.', local: 'Local processing', localDescription: 'No signup. Your images stay on your device.',
     drop: 'Drag or click to choose files', formats: 'Formats', max: '20 MB per file', settings: 'Image compression settings', output: 'Output format', keep: 'Keep default', level: 'Compression level', workspace: 'YOUR WORKSPACE', done: 'Compression complete.', working: 'Making images lighter.', files: 'files', fast: 'Local processing, speed first', outputPrefix: 'Output:', pause: 'Pause', resume: 'Resume', waiting: 'Images are being processed in your browser. Please wait before leaving.',
-    why: 'Less waiting,', whyAccent: 'more creating.', fastTitle: 'Fast enough to forget the wait', fastCopy: 'Everything runs in your browser. Your images take no detour through a server.', privateTitle: 'Your images stay private', privateCopy: 'QuackPress processes images locally in your browser. Nothing is uploaded.', clearTitle: 'Small, without visible loss', clearCopy: 'Smart encoding keeps important details while making files meaningfully smaller.', try: 'Try it', privacyTitle: 'Privacy-first compression', privacyCopy: 'No signup and no uploads. Compression and previews stay on your device.', privacyLink: 'Privacy', help: 'Help',
+    why: 'Less waiting,', whyAccent: 'more creating.', fastTitle: 'Fast enough to forget the wait', fastCopy: 'Everything runs in your browser. Your images take no detour through a server.', privateTitle: 'Your images stay private', privateCopy: 'QuackPress processes images locally in your browser. Nothing is uploaded.', clearTitle: 'Small, without visible loss', clearCopy: 'Smart encoding keeps important details while making files meaningfully smaller.', try: 'Try it', help: 'Help',
   }
   if (language === 'ja') return {
-    home: 'QuackPress ホーム', navLabel: 'メインナビゲーション', tool: '圧縮ツール', how: '使い方', privacy: 'プライバシー', language: '日本語', login: 'ログイン', menu: 'メニューを開く',
+    home: 'QuackPress ホーム', navLabel: 'メインナビゲーション', tool: '圧縮ツール', how: '使い方', language: '日本語', login: 'ログイン', menu: 'メニューを開く',
     heroTitle: '画像を軽く、', heroTitleAccent: 'ウェブを速く。', heroDescription: '形式を選び、画像をアップロードして、結果を確認してダウンロード。すべてブラウザ内で処理します。', local: 'ローカル処理', localDescription: '登録不要。画像はデバイスから離れません。',
     drop: 'ドラッグまたはクリックしてファイルを選択', formats: '対応形式', max: '1ファイル最大 20 MB', settings: '画像圧縮設定', output: '出力形式', keep: 'デフォルト', level: '圧縮レベル', workspace: 'YOUR WORKSPACE', done: '圧縮完了。', working: '画像を軽くしています。', files: 'ファイル', fast: 'ローカル処理、速度優先', outputPrefix: '出力:', pause: '一時停止', resume: '再開', waiting: 'ブラウザで画像を処理中です。完了までお待ちください。',
-    why: '待ち時間を減らし、', whyAccent: '創造を増やす。', fastTitle: '待つことを忘れる速さ', fastCopy: 'すべてブラウザで処理。画像をサーバーへ送信しません。', privateTitle: '画像はデバイス内に', privateCopy: 'QuackPress はブラウザ内で画像を処理します。アップロードはありません。', clearTitle: '見た目を保って軽量化', clearCopy: '重要なディテールを残しながら、ファイルサイズを小さくします。', try: '試す', privacyTitle: 'プライバシー優先の圧縮', privacyCopy: '登録もアップロードも不要。圧縮とプレビューはデバイス内で完結します。', privacyLink: 'プライバシー', help: 'ヘルプ',
+    why: '待ち時間を減らし、', whyAccent: '創造を増やす。', fastTitle: '待つことを忘れる速さ', fastCopy: 'すべてブラウザで処理。画像をサーバーへ送信しません。', privateTitle: '画像はデバイス内に', privateCopy: 'QuackPress はブラウザ内で画像を処理します。アップロードはありません。', clearTitle: '見た目を保って軽量化', clearCopy: '重要なディテールを残しながら、ファイルサイズを小さくします。', try: '試す', help: 'ヘルプ',
   }
   if (language === 'ko') return {
-    home: 'QuackPress 홈', navLabel: '주 메뉴', tool: '압축 도구', how: '사용 방법', privacy: '개인정보 보호', language: '한국어', login: '로그인', menu: '메뉴 열기',
+    home: 'QuackPress 홈', navLabel: '주 메뉴', tool: '압축 도구', how: '사용 방법', language: '한국어', login: '로그인', menu: '메뉴 열기',
     heroTitle: '이미지는 가볍게,', heroTitleAccent: '웹은 빠르게.', heroDescription: '형식을 선택하고 이미지를 업로드한 뒤 결과를 확인하고 다운로드하세요. 모든 처리는 브라우저에서 진행됩니다.', local: '로컬 처리', localDescription: '가입이 필요 없습니다. 이미지는 기기에 남습니다.',
     drop: '드래그하거나 클릭하여 파일 선택', formats: '지원 형식', max: '파일당 최대 20 MB', settings: '이미지 압축 설정', output: '출력 형식', keep: '기본 유지', level: '압축 정도', workspace: 'YOUR WORKSPACE', done: '압축 완료.', working: '이미지를 가볍게 만드는 중입니다.', files: '개 파일', fast: '로컬 처리, 빠른 속도', outputPrefix: '출력:', pause: '일시정지', resume: '계속', waiting: '브라우저에서 이미지를 처리 중입니다. 완료될 때까지 기다려 주세요.',
-    why: '기다림은 줄이고,', whyAccent: '창작은 늘리고.', fastTitle: '기다림을 잊을 만큼 빠르게', fastCopy: '모든 처리는 브라우저에서 진행됩니다. 이미지가 서버를 거치지 않습니다.', privateTitle: '이미지는 기기에 안전하게', privateCopy: 'QuackPress는 브라우저에서 이미지를 처리하며 업로드하지 않습니다.', clearTitle: '화질은 유지하고 용량은 줄이고', clearCopy: '중요한 디테일을 유지하면서 파일을 작게 만듭니다.', try: '사용해 보기', privacyTitle: '개인정보 우선 압축', privacyCopy: '가입과 업로드가 필요 없습니다. 압축과 미리보기는 기기에서 처리됩니다.', privacyLink: '개인정보', help: '도움말',
+    why: '기다림은 줄이고,', whyAccent: '창작은 늘리고.', fastTitle: '기다림을 잊을 만큼 빠르게', fastCopy: '모든 처리는 브라우저에서 진행됩니다. 이미지가 서버를 거치지 않습니다.', privateTitle: '이미지는 기기에 안전하게', privateCopy: 'QuackPress는 브라우저에서 이미지를 처리하며 업로드하지 않습니다.', clearTitle: '화질은 유지하고 용량은 줄이고', clearCopy: '중요한 디테일을 유지하면서 파일을 작게 만듭니다.', try: '사용해 보기', help: '도움말',
   }
   if (language === 'zh-TW') return {
-    home: '壓縮鴨首頁', navLabel: '主導覽', tool: '壓縮工具', how: '運作方式', privacy: '隱私保護', language: '繁體中文', login: '登入', menu: '開啟選單',
+    home: '壓縮鴨首頁', navLabel: '主導覽', tool: '壓縮工具', how: '運作方式', language: '繁體中文', login: '登入', menu: '開啟選單',
     heroTitle: '圖片變輕，', heroTitleAccent: '網頁更快。', heroDescription: '選擇格式、上傳圖片、預覽結果後直接下載。壓縮過程在瀏覽器本機完成。', local: '本機處理', localDescription: '無需註冊，圖片不會離開你的裝置。',
     drop: '拖曳或點擊選擇檔案', formats: '支援格式', max: '單一檔案最大 20 MB', settings: '圖片壓縮設定', output: '輸出格式', keep: '保持預設', level: '壓縮程度', workspace: 'YOUR WORKSPACE', done: '壓縮完成。', working: '正在讓圖片變輕。', files: '個檔案', fast: '本機處理，速度優先', outputPrefix: '輸出：', pause: '暫停', resume: '繼續', waiting: '圖片正在瀏覽器中處理，離開頁面前請等待完成',
-    why: '少一點等待，', whyAccent: '多一點創造。', fastTitle: '快得讓人忘記等待', fastCopy: '所有處理都在瀏覽器中完成，圖片不會繞路經過伺服器。', privateTitle: '圖片不離開你的裝置', privateCopy: '壓縮鴨在瀏覽器本機處理圖片，不會上傳。', clearTitle: '保持清晰，檔案更小', clearCopy: '保留重要細節，同時有效縮小檔案。', try: '試用看看', privacyTitle: '隱私優先的壓縮', privacyCopy: '無需註冊或上傳，壓縮與預覽都留在你的裝置上。', privacyLink: '隱私說明', help: '說明中心',
+    why: '少一點等待，', whyAccent: '多一點創造。', fastTitle: '快得讓人忘記等待', fastCopy: '所有處理都在瀏覽器中完成，圖片不會繞路經過伺服器。', privateTitle: '圖片不離開你的裝置', privateCopy: '壓縮鴨在瀏覽器本機處理圖片，不會上傳。', clearTitle: '保持清晰，檔案更小', clearCopy: '保留重要細節，同時有效縮小檔案。', try: '試用看看', help: '說明中心',
   }
   return {
-    home: '压缩鸭首页', navLabel: '主导航', tool: '压缩工具', how: '怎么工作', privacy: '隐私保护', language: '简体中文', login: '登录', menu: '打开菜单',
+    home: '压缩鸭首页', navLabel: '主导航', tool: '压缩工具', how: '怎么工作', language: '简体中文', login: '登录', menu: '打开菜单',
     heroTitle: '图片变轻，', heroTitleAccent: '网页更快。', heroDescription: '选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。', local: '本地处理', localDescription: '无需注册，图片不离开你的设备。',
     drop: '拖拽或点击选择文件', formats: '支持格式', max: '单张文件最大 20 MB', settings: '图片压缩设置', output: '输出格式', keep: '保持默认', level: '压缩程度', workspace: 'YOUR WORKSPACE', done: '压缩完成。', working: '正在让图片变轻。', files: '个文件', fast: '本地处理，速度优先', outputPrefix: '输出：', pause: '暂停', resume: '继续', waiting: '图片正在浏览器中处理，离开页面前请等待完成',
-    why: '少一点等待，', whyAccent: '多一点创造。', fastTitle: '快得让人忘记等待', fastCopy: '所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。', privateTitle: '图片不离开你的设备', privateCopy: '压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。', clearTitle: '清晰，肉眼看不出差别', clearCopy: '智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。', try: '试试看', privacyTitle: '隐私优先的压缩', privacyCopy: '无需注册，无需上传到服务器。压缩和预览都留在你的设备上。', privacyLink: '隐私说明', help: '帮助中心',
+    why: '少一点等待，', whyAccent: '多一点创造。', fastTitle: '快得让人忘记等待', fastCopy: '所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。', privateTitle: '图片不离开你的设备', privateCopy: '压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。', clearTitle: '清晰，肉眼看不出差别', clearCopy: '智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。', try: '试试看', help: '帮助中心',
   }
 }
 
@@ -319,7 +318,6 @@ function App() {
         <nav className="desktop-nav" aria-label={copy.navLabel}>
           <a className="nav-active" href="#compress">{copy.tool}</a>
           <a href="#how-it-works">{copy.how}</a>
-          <a href="#privacy">{copy.privacy}</a>
         </nav>
         <div className="topbar-actions">
           <div className="language-menu">
@@ -334,7 +332,6 @@ function App() {
         {isMobileNavOpen && <nav className="mobile-nav-panel" aria-label={copy.navLabel}>
           <a href="#compress" onClick={() => setIsMobileNavOpen(false)}>{copy.tool}</a>
           <a href="#how-it-works" onClick={() => setIsMobileNavOpen(false)}>{copy.how}</a>
-          <a href="#privacy" onClick={() => setIsMobileNavOpen(false)}>{copy.privacy}</a>
         </nav>}
       </header>
 
@@ -411,10 +408,9 @@ function App() {
           </div>
         </section>
 
-        <section className="privacy-strip" id="privacy"><div className="privacy-icon"><LockKeyhole size={22} /></div><div><strong>{copy.privacyTitle}</strong><span>{copy.privacyCopy}</span></div><CircleHelp size={18} className="privacy-help" /></section>
       </main>
 
-      <footer className="footer"><span>© 2026 QuackPress</span><span>{language === 'en' ? 'Made for the web, with care.' : language === 'ja' ? 'ウェブのために、丁寧に。' : language === 'ko' ? '웹을 위해 정성껏 만들었습니다.' : language === 'zh-TW' ? '為網頁而作，用心壓縮。' : '为网页而作，用心压缩。'}</span><div><a href="#privacy">{copy.privacyLink}</a><a href="#how-it-works">{copy.help}</a></div></footer>
+      <footer className="footer"><span>© 2026 QuackPress</span><span>{language === 'en' ? 'Made for the web, with care.' : language === 'ja' ? 'ウェブのために、丁寧に。' : language === 'ko' ? '웹을 위해 정성껏 만들었습니다.' : language === 'zh-TW' ? '為網頁而作，用心壓縮。' : '为网页而作，用心压缩。'}</span><div><a href="#how-it-works">{copy.help}</a></div></footer>
       {activeItem && <PreviewModal item={activeItem} language={language} onClose={() => setActiveItem(null)} onDownload={downloadItem} />}
     </div>
   )
