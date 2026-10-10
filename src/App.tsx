@@ -1,6 +1,6 @@
 import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { compressLocally } from './lib/compression/localEncoder'
+import { COMPRESSION_LEVELS, compressLocally } from './lib/compression/localEncoder'
 import {
   ArrowDownToLine,
   ArrowLeftRight,
@@ -94,6 +94,7 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('original')
+  const [compressionLevel, setCompressionLevel] = useState(1)
   const [activeItem, setActiveItem] = useState<ImageItem | null>(null)
   const [notice, setNotice] = useState('')
 
@@ -115,7 +116,7 @@ function App() {
     async (item: ImageItem) => {
       updateItem(item.id, { status: 'compressing', progress: 8 })
       try {
-        const result = await compressLocally(item.file, outputFormat, (progress) => updateItem(item.id, { progress }), () => isPausedRef.current)
+        const result = await compressLocally(item.file, outputFormat, compressionLevel, (progress) => updateItem(item.id, { progress }), () => isPausedRef.current)
         const outputUrl = URL.createObjectURL(result.blob)
         updateItem(item.id, {
           outputUrl,
@@ -131,7 +132,7 @@ function App() {
         updateItem(item.id, { status: 'error', error: '图片处理失败，请重试' })
       }
     },
-    [outputFormat, updateItem],
+    [compressionLevel, outputFormat, updateItem],
   )
 
   const startQueued = useCallback(
@@ -287,6 +288,12 @@ function App() {
                 </label>
               ))}
             </div>
+          </div>
+          <div className="compression-level" aria-label="压缩程度">
+            <div className="compression-level-heading"><span>压缩程度</span><strong>{compressionLevel} / 5</strong><small>约压缩 {COMPRESSION_LEVELS[compressionLevel - 1]}%</small></div>
+            <input className="compression-range" type="range" min="1" max="5" step="1" value={compressionLevel} onChange={(event) => setCompressionLevel(Number(event.target.value))} aria-valuemin={1} aria-valuemax={5} aria-valuenow={compressionLevel} />
+            <div className="compression-scale" aria-hidden="true">{COMPRESSION_LEVELS.map((reduction, index) => <span className={compressionLevel === index + 1 ? 'active' : ''} key={reduction}><i>{index + 1}</i><em>{reduction}%</em></span>)}</div>
+            {outputFormat === 'image/png' && <p className="compression-level-note">PNG 使用无损编码，档位仅影响编码策略，体积缩减可能低于标示值。</p>}
           </div>
           {hasWork && (
             <div className="queue-panel">
