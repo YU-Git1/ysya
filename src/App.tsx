@@ -1,6 +1,6 @@
 import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { COMPRESSION_LEVELS, compressLocally } from './lib/compression/localEncoder'
+import { compressLocally } from './lib/compression/localEncoder'
 import {
   ArrowDownToLine,
   ArrowLeftRight,
@@ -276,7 +276,6 @@ function App() {
             <div className="dropzone-title">拖拽或点击选择文件</div>
             <div className="dropzone-meta"><span>支持格式</span><strong>JPG、PNG、WebP</strong><i /> <span>单张文件最大 20 MB</span></div>
           </div>
-          <div className="local-processing-note"><LockKeyhole size={13} /> 本地处理 · 图片不会上传到服务器</div>
           <div className="format-selector" aria-label="选择输出格式">
             <span className="format-selector-label">输出格式</span>
             <div className="format-options">
@@ -290,9 +289,8 @@ function App() {
             </div>
           </div>
           <div className="compression-level" aria-label="压缩程度">
-            <div className="compression-level-heading"><span>压缩程度</span><strong>{compressionLevel} / 5</strong><small>约压缩 {COMPRESSION_LEVELS[compressionLevel - 1]}%</small></div>
+            <div className="compression-level-heading"><span>压缩程度</span><strong>{compressionLevel}</strong></div>
             <input className="compression-range" type="range" min="1" max="5" step="1" value={compressionLevel} onChange={(event) => setCompressionLevel(Number(event.target.value))} aria-valuemin={1} aria-valuemax={5} aria-valuenow={compressionLevel} />
-            <div className="compression-scale" aria-hidden="true">{COMPRESSION_LEVELS.map((reduction, index) => <span className={compressionLevel === index + 1 ? 'active' : ''} key={reduction}><i>{index + 1}</i><em>{reduction}%</em></span>)}</div>
             {outputFormat === 'image/png' && <p className="compression-level-note">PNG 使用无损编码，档位仅影响编码策略，体积缩减可能低于标示值。</p>}
           </div>
           {hasWork && (
