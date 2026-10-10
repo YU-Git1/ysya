@@ -344,7 +344,30 @@ function FeatureCard({ number, icon, title, copy }: { number: string; icon: Reac
 function PreviewModal({ item, onClose, onDownload }: { item: ImageItem; onClose: () => void; onDownload: (item: ImageItem) => void }) {
   const [comparisonMode, setComparisonMode] = useState<'side-by-side' | 'split'>('side-by-side')
   const [splitPosition, setSplitPosition] = useState(50)
-  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal comparison-modal" role="dialog" aria-modal="true" aria-label="图片对比预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">COMPARE</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭对比"><X size={18} /></button></div><div className="comparison-switch" role="group" aria-label="对比模式"><button className={comparisonMode === 'side-by-side' ? 'selected' : ''} onClick={() => setComparisonMode('side-by-side')}>并排对比</button><button className={comparisonMode === 'split' ? 'selected' : ''} onClick={() => setComparisonMode('split')}>分割对比</button></div>{comparisonMode === 'side-by-side' ? <div className="comparison-stage side-by-side-stage"><div className="comparison-pane"><img src={item.previewUrl} alt="原图" /><span>原图 · {formatBytes(item.originalSize)}</span></div><div className="comparison-pane"><img src={item.outputUrl} alt="压缩后" /><span>压缩后 · {formatBytes(item.outputSize ?? 0)}</span></div></div> : <div className="comparison-stage split-stage"><img src={item.previewUrl} alt="原图" /><div className="split-output" style={{ clipPath: `inset(0 ${100 - splitPosition}% 0 0)` }}><img src={item.outputUrl} alt="压缩后" /></div><div className="split-divider" style={{ left: `${splitPosition}%` }} aria-hidden="true"><span>↔</span></div><span className="comparison-tag tag-original">原图</span><span className="comparison-tag tag-output">压缩后</span><input id="split-position" aria-label="调整对比位置" className="split-range" type="range" min="5" max="95" value={splitPosition} onChange={(event) => setSplitPosition(Number(event.target.value))} /></div>}<div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载 {item.outputFormat}</button></div></div></div>
+  const [zoom, setZoom] = useState(1)
+  const [draggingSplit, setDraggingSplit] = useState(false)
+  const stageRef = useRef<HTMLDivElement>(null)
+
+  const setSplitFromClientX = useCallback((clientX: number) => {
+    const bounds = stageRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    setSplitPosition(Math.min(95, Math.max(5, ((clientX - bounds.left) / bounds.width) * 100)))
+  }, [])
+
+  useEffect(() => {
+    if (!draggingSplit) return
+    const handlePointerMove = (event: PointerEvent) => setSplitFromClientX(event.clientX)
+    const handlePointerUp = () => setDraggingSplit(false)
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [draggingSplit, setSplitFromClientX])
+
+  const imageTransform = { transform: `scale(${zoom})` }
+  return <div className="modal-backdrop" role="presentation" onClick={onClose}><div className="preview-modal comparison-modal" role="dialog" aria-modal="true" aria-label="图片对比预览" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><span className="section-kicker">COMPARE</span><h2>{item.file.name}</h2></div><button className="icon-button" onClick={onClose} aria-label="关闭对比"><X size={18} /></button></div><div className="comparison-switch" role="group" aria-label="对比模式"><button className={comparisonMode === 'side-by-side' ? 'selected' : ''} onClick={() => setComparisonMode('side-by-side')}>并排对比</button><button className={comparisonMode === 'split' ? 'selected' : ''} onClick={() => setComparisonMode('split')}>分割对比</button></div>{comparisonMode === 'side-by-side' ? <div ref={stageRef} className="comparison-stage side-by-side-stage" onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(3, Math.max(1, value + (event.deltaY < 0 ? 0.1 : -0.1)))) }}><div className="comparison-pane"><img src={item.previewUrl} alt="原图" style={imageTransform} /><span>原图 · {formatBytes(item.originalSize)}</span></div><div className="comparison-pane"><img src={item.outputUrl} alt="压缩后" style={imageTransform} /><span>压缩后 · {formatBytes(item.outputSize ?? 0)}</span></div><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div> : <div ref={stageRef} className="comparison-stage split-stage" onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(3, Math.max(1, value + (event.deltaY < 0 ? 0.1 : -0.1)))) }}><img src={item.previewUrl} alt="原图" style={imageTransform} /><div className="split-output" style={{ width: '100%', clipPath: `inset(0 ${100 - splitPosition}% 0 0)` }}><img src={item.outputUrl} alt="压缩后" style={imageTransform} /></div><div className={`split-divider ${draggingSplit ? 'split-divider-dragging' : ''}`} style={{ left: `${splitPosition}%` }}><button className="split-handle" type="button" aria-label="拖动对比位置，使用左右方向键微调" onPointerDown={(event) => { event.preventDefault(); setDraggingSplit(true) }} onKeyDown={(event) => { if (event.key === 'ArrowLeft') setSplitPosition((value) => Math.max(5, value - 2)); if (event.key === 'ArrowRight') setSplitPosition((value) => Math.min(95, value + 2)) }}><span>↔</span></button></div><span className="comparison-tag tag-original">原图</span><span className="comparison-tag tag-output">压缩后</span><span className="zoom-indicator">{Math.round(zoom * 100)}%</span></div>}<div className="modal-footer"><div><strong>节省 {formatSavings(item.originalSize, item.outputSize)}</strong><span>保持原始尺寸 · {item.outputFormat}</span></div><button className="primary-button" onClick={() => onDownload(item)}><Download size={16} /> 下载 {item.outputFormat}</button></div></div></div>
 }
 
 export default App
