@@ -80,6 +80,11 @@ function formatLabel(outputFormat: OutputFormat) {
   return outputFormat === 'original' ? '保持原格式' : outputFormat === 'image/jpeg' ? '转换为 JPG' : outputFormat === 'image/png' ? '转换为 PNG' : '转换为 WebP'
 }
 
+function getBatchDownloadLabel(items: ImageItem[]) {
+  const formats = [...new Set(items.map((item) => item.outputFormat).filter(Boolean))]
+  return formats.length === 1 ? `全部下载 ${formats[0]}` : '全部下载'
+}
+
 function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   const itemsRef = useRef<ImageItem[]>([])
@@ -289,7 +294,7 @@ function App() {
               <div className="queue-header">
                 <div><span className="section-kicker">YOUR WORKSPACE</span><h2>{allDone ? '压缩完成。' : '正在让图片变轻。'}</h2></div>
                 <div className="queue-actions">
-                  {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> 全部下载 {completedItems[0]?.outputFormat ?? ''}</button>}
+                  {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> {getBatchDownloadLabel(completedItems)}</button>}
                 </div>
               </div>
               <div className="queue-summary"><span><FileStack size={15} /> {items.length} 个文件</span><span><Zap size={15} /> {allDone ? `共节省 ${formatSavings(totalOriginal, totalOutput)}` : '本地处理，速度优先'}</span><span className="format-summary">输出：{formatLabel(outputFormat)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? '继续' : '暂停'}</button></div>
