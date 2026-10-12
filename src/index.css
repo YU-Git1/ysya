@@ -150,7 +150,8 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
   .compression-range::-moz-range-track { height: 6px; border: 1px solid #e5ead2; border-radius: 8px; background: #fff; }
   .compression-range::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -5px; appearance: none; border: 0; border-radius: 50%; background: #91aa22; cursor: grab; }
   .compression-range::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #91aa22; cursor: grab; }
-  .compression-range-value { position: absolute; top: 50%; z-index: 1; width: 16px; transform: translate(-50%, -50%); color: #fff; font: 500 9px 'DM Mono', monospace; text-align: center; pointer-events: none; }
+  .compression-range-value { position: absolute; top: 50%; z-index: 1; display: grid; width: 16px; height: 16px; place-items: center; color: #fff; font: 700 10px/1 'DM Mono', monospace; text-align: center; text-shadow: 0 1px 1px #536313; pointer-events: none; }
+  .format-selector-label { font-size: 12px; }
 }
 
 /* Final responsive overrides keep the Figma proportions after legacy component rules. */
@@ -179,6 +180,9 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
   .compression-range::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #91aa22; cursor: grab; }
   .compression-range-value { position: absolute; top: 50%; z-index: 1; width: 16px; transform: translate(-50%, -50%); color: #fff; font: 500 9px 'DM Mono', monospace; text-align: center; pointer-events: none; }
 }
+
+.format-selector-label { font-size: 12px; }
+.compression-range-value { position: absolute; top: 50%; z-index: 1; display: grid; width: 16px; height: 16px; place-items: center; transform: translate(-50%, -50%); color: #fff; font: 700 10px/1 'DM Mono', monospace; text-align: center; text-shadow: 0 1px 1px #536313; pointer-events: none; }
 @media (max-width: 800px) { .dropzone-main { min-height: 230px; }.dropzone-meta { flex-wrap: wrap; justify-content: center; }.mobile-nav-panel { z-index: 5; } }
 
 @media (max-width: 800px) {

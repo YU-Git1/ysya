@@ -526,7 +526,7 @@ function App() {
               <div className="compression-level-heading"><span>{copy.level}</span><strong>{compressionLevel}</strong></div>
               <div className="compression-range-wrap">
                 <input className="compression-range" type="range" min="1" max="5" step="1" value={compressionLevel} onChange={(event) => setCompressionLevel(Number(event.target.value))} aria-valuemin={1} aria-valuemax={5} aria-valuenow={compressionLevel} />
-                <strong className="compression-range-value" style={{ left: `${((compressionLevel - 1) / 4) * 100}%` }}>{compressionLevel}</strong>
+                <strong className="compression-range-value" style={{ left: `${((compressionLevel - 1) / 4) * 100}%`, transform: `translate(calc(-50% + ${8 - ((compressionLevel - 1) / 4) * 16}px), -50%)` }}>{compressionLevel}</strong>
               </div>
             </div>
           </div>
