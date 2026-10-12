@@ -126,7 +126,7 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
 
 /* The compression surface keeps the same design language at every viewport. */
 @media (max-width: 800px) {
-  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding: clamp(32px, 12vw, 96px) 20px clamp(32px, 8vw, 64px); }
+  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding: 24px 20px 32px; }
   .dropzone { position: relative; gap: clamp(12px, 3vw, 24px); min-height: clamp(220px, 35.625vw, 285px); padding: clamp(24px, 8vw, 64px); }
   .dropzone:hover, .dropzone-active { transform: none; }
   .dropzone-main { width: auto; min-height: 0; padding: 0; }
@@ -155,7 +155,7 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
 
 /* Final responsive overrides keep the Figma proportions after legacy component rules. */
 @media (max-width: 800px) {
-  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding: clamp(32px, 12vw, 96px) 20px clamp(32px, 8vw, 64px); }
+  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding: 24px 20px 32px; }
   .dropzone { position: relative; gap: clamp(12px, 3vw, 24px); min-height: clamp(220px, 35.625vw, 285px); padding: clamp(24px, 8vw, 64px); }
   .dropzone:hover, .dropzone-active { transform: none; }
   .dropzone-main { width: auto; min-height: 0; padding: 0; }
@@ -190,7 +190,7 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
   .app-shell { padding-top: 50px; }
   .topbar { height: 50px; padding-inline: max(20px, calc((100% - 1160px) / 2)); }
   .hero-section, .workspace-section, .features-section { max-width: 1200px; padding-inline: 20px; }
-  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding-top: clamp(32px, 12vw, 96px); padding-bottom: clamp(32px, 8vw, 64px); }
+  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding-top: 24px; padding-bottom: 32px; }
   .hero-section { padding-top: 48px; padding-bottom: 48px; }
   .features-section { padding-top: 48px; padding-bottom: 48px; }
   .dropzone { position: relative; gap: 24px; min-height: 285px; padding: 64px; }
@@ -221,7 +221,7 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
 
 /* Apply the same compression composition after all legacy breakpoint rules. */
 @media (max-width: 800px) {
-  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding: clamp(32px, 12vw, 96px) 20px clamp(32px, 8vw, 64px); }
+  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding: 24px 20px 32px; }
   .dropzone { position: relative; gap: clamp(12px, 3vw, 24px); min-height: clamp(220px, 35.625vw, 285px); padding: clamp(24px, 8vw, 64px); }
   .dropzone:hover, .dropzone-active { transform: none; }
   .dropzone-main { width: auto; min-height: 0; padding: 0; }
