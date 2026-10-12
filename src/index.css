@@ -129,10 +129,18 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
   .app-shell { padding-top: 50px; }
   .topbar { height: 50px; padding-inline: max(20px, calc((100% - 1160px) / 2)); }
   .hero-section, .workspace-section, .features-section { max-width: 1200px; padding-inline: 20px; }
-  .workspace-section { padding-top: 96px; padding-bottom: 64px; }
+  .workspace-section { display: flex; flex-direction: column; gap: 16px; padding-top: 96px; padding-bottom: 64px; }
   .hero-section { padding-top: 48px; padding-bottom: 48px; }
   .features-section { padding-top: 48px; padding-bottom: 48px; }
+  .dropzone { position: relative; gap: 24px; min-height: 285px; padding: 64px; }
+  .dropzone:hover, .dropzone-active { transform: none; }
+  .dropzone-main { width: auto; min-height: 0; padding: 0; }
+  .dropzone-art { margin-bottom: 24px; }
+  .dropzone-meta { margin-top: 16px; }
+  .folder-picker { position: absolute; right: 16px; bottom: 12px; margin: 0; padding: 6px 8px; border-color: transparent; background: transparent; color: #7d8760; font-size: 10px; }
+  .folder-picker:hover { border-color: #d8dec0; background: #fbfcf5; }
   .settings-panel { width: 100%; max-width: none; }
+  .settings-panel { border-radius: 8px; }
   .format-selector { justify-content: space-between; padding: 12px 16px; }
   .compression-level { position: relative; display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 12px 16px; }
   .compression-level-heading { flex: 0 0 auto; color: #8b9183; font-size: 12px; }
