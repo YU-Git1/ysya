@@ -96,3 +96,31 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
 @media (max-width: 800px) { .row-actions { flex-direction: row; gap: 5px; }.compare-button, .download-button { width: auto; min-width: 64px; min-height: 30px; padding: 6px 7px; font-size: 9px; }.comparison-stage { touch-action: none; }.split-handle { width: 36px; height: 36px; } }
 @media (max-width: 520px) { .brand-name { font-size: 16px; }.brand-english { font-size: 7px; }.settings-panel { border-radius: 3px; }.format-selector-label { font-size: 9px; }.format-option { padding-inline: 3px; gap: 5px; font-size: 10px; }.format-options { gap: 3px; }.image-row { gap: 8px; }.row-actions { gap: 4px; }.compare-button, .download-button { min-width: 0; padding-inline: 6px; font-size: 9px; }.download-label { overflow: hidden; text-overflow: ellipsis; }.comparison-modal { max-height: calc(100vh - 24px); overflow-y: auto; }.comparison-stage { height: min(58vw, 280px); min-height: 210px; }.comparison-switch button { padding-inline: 10px; }.modal-footer { gap: 12px; }.modal-footer .primary-button { white-space: nowrap; font-size: 10px; } }
 @media (min-width: 801px) and (max-width: 1100px) { .topbar { padding-inline: 24px; }.desktop-nav { gap: 20px; }.workspace-section, .hero-section { padding-inline: 24px; }.image-row { grid-template-columns: 46px minmax(150px, 1fr) minmax(110px, .8fr) 72px auto; gap: 12px; }.download-button, .compare-button { padding-inline: 8px; } }
+
+.dropzone { cursor: default; }
+.dropzone-main { display: flex; width: 100%; min-height: 230px; align-items: center; flex-direction: column; justify-content: center; padding: 24px 16px 10px; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.dropzone-main:focus-visible, .folder-picker:focus-visible, .export-chevron:focus-visible { outline: 2px solid #788e1e; outline-offset: 3px; }
+.dropzone-main .dropzone-art { flex: 0 0 auto; }
+.dropzone-main .dropzone-title, .dropzone-main .dropzone-meta, .dropzone-main .dropzone-capacity { display: block; }
+.dropzone-capacity { margin-top: 10px; color: #959b88; font-size: 10px; }
+.folder-picker { display: inline-flex; align-items: center; justify-content: center; gap: 7px; margin: 5px 0 16px; padding: 8px 11px; border: 1px solid #d8dec0; border-radius: 4px; background: #fbfcf5; color: #687526; font-size: 11px; font-weight: 700; cursor: pointer; }
+.folder-picker:hover { border-color: #aab95a; background: #f0f4d9; }
+.export-menu { position: relative; display: flex; }
+.export-menu .primary-button { border-radius: 5px 0 0 5px; }
+.export-chevron { display: grid; width: 34px; place-items: center; border: 0; border-left: 1px solid #ffffff55; border-radius: 0 5px 5px 0; background: #20231e; color: #fff; cursor: pointer; }
+.export-chevron:hover { background: #4e5a29; }
+.export-options { position: absolute; z-index: 5; top: calc(100% + 6px); right: 0; display: grid; min-width: 190px; padding: 5px; border: 1px solid #dfe1d8; border-radius: 5px; background: #fff; box-shadow: 0 10px 26px #20231e1a; }
+.export-options button { padding: 10px; border: 0; background: transparent; color: #51574a; text-align: left; font-size: 11px; cursor: pointer; }
+.export-options button:hover { background: #f0f4d9; }
+.export-options button:disabled { color: #a0a59c; cursor: wait; }
+.login-modal { width: min(420px, 100%); padding: 24px; border: 1px solid #dfe1d8; border-radius: 6px; background: #f9faf6; box-shadow: 0 20px 70px #1118; }
+.login-modal-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.login-modal-header h2 { margin-top: 8px; font-size: 22px; }
+.login-modal form { display: grid; gap: 10px; margin-top: 22px; }
+.login-modal form label { color: #73796a; font-size: 11px; }
+.login-modal form input { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid #d4d8c9; border-radius: 4px; background: #fff; color: #252820; font-size: 13px; }
+.login-modal form input:focus { border-color: #97aa34; outline: 2px solid #dce6a9; }
+.login-modal form .primary-button { min-height: 42px; margin-top: 4px; }
+.login-message, .login-configuration { margin-top: 13px; color: #667722; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.login-configuration { color: #8d7650; }
+@media (max-width: 800px) { .dropzone-main { min-height: 230px; }.dropzone-meta { flex-wrap: wrap; justify-content: center; }.mobile-nav-panel { z-index: 5; } }

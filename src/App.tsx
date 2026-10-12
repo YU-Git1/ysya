@@ -1,6 +1,11 @@
 import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { compressLocally } from './lib/compression/localEncoder'
+import { compressLocally, getFormatLabel, type LocalOutputFormat } from './lib/compression/localEncoder'
+import { getCompressionConcurrency, TaskScheduler } from './lib/compression/taskQueue'
+import { MAX_BATCH_BYTES, MAX_BATCH_FILES, MAX_FILE_BYTES, detectInputFormat, validateFiles } from './lib/compression/validation'
+import { isAuthConfigured, supabase } from './lib/auth/supabase'
+import { createZip } from './lib/compression/zipExport'
+import { writeFilesToDirectory } from './lib/compression/folderExport'
 import {
   ArrowDownToLine,
   ArrowLeftRight,
@@ -8,6 +13,7 @@ import {
   ChevronDown,
   CloudUpload,
   Download,
+  FolderInput,
   FileImage,
   FileStack,
   Info,
@@ -26,13 +32,15 @@ import {
 } from 'lucide-react'
 
 type ItemStatus = 'queued' | 'compressing' | 'done' | 'error'
-type OutputFormat = 'original' | 'image/jpeg' | 'image/png' | 'image/webp'
+type OutputFormat = LocalOutputFormat
 type Language = 'zh-CN' | 'zh-TW' | 'en' | 'ja' | 'ko'
 
 type AppCopy = {
   home: string; navLabel: string; tool: string; how: string; language: string; login: string; menu: string
   heroTitle: string; heroTitleAccent: string; heroDescription: string; local: string; localDescription: string
   drop: string; formats: string; max: string; settings: string; output: string; keep: string; level: string
+  folder: string; supportedFormats: string; batchLimit: string; exportAll: string; downloadFiles: string; exportZip: string; zipWorking: string; loginEmail: string; sendLoginLink: string; signOut: string; authMissing: string
+  exportFolder: string
   workspace: string; done: string; working: string; files: string; fast: string; outputPrefix: string; pause: string; resume: string; waiting: string
   why: string; whyAccent: string; fastTitle: string; fastCopy: string; privateTitle: string; privateCopy: string; clearTitle: string; clearCopy: string; try: string
   help: string
@@ -51,8 +59,13 @@ type ImageItem = {
   file: File
   previewUrl: string
   outputUrl?: string
+  outputBlob?: Blob
   outputName?: string
   outputFormat?: string
+  directoryPath?: string
+  inputFormat: string
+  compressionLevel: number
+  requestedOutputFormat: OutputFormat
   originalSize: number
   outputSize?: number
   width?: number
@@ -62,9 +75,46 @@ type ImageItem = {
   error?: string
 }
 
-const MAX_FILES = 20
-const MAX_SIZE = 20 * 1024 * 1024
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ACCEPTED_FORMATS = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff', 'image/heic', 'image/heif', '.tif', '.tiff', '.heic', '.heif']
+const OUTPUT_FORMATS: [OutputFormat, string][] = [['original', '保持默认'], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP'], ['image/avif', 'AVIF']]
+
+declare global {
+  interface Window {
+    showDirectoryPicker?: () => Promise<import('./lib/compression/folderExport').DirectoryHandle>
+  }
+}
+
+type DroppedEntry = FileSystemEntry & { file?: (success: (file: File) => void, error?: () => void) => void; createReader?: () => { readEntries: (success: (entries: DroppedEntry[]) => void, error?: () => void) => void } }
+
+async function getDroppedFiles(items: DataTransferItemList, maxFiles = MAX_BATCH_FILES) {
+  const files: { file: File; path?: string }[] = []
+  const readEntry = async (entry: DroppedEntry, parent = ''): Promise<void> => {
+    if (files.length >= maxFiles) return
+    if (entry.isFile && entry.file) {
+      const file = await new Promise<File | null>((resolve) => entry.file?.(resolve, () => resolve(null)))
+      if (file) files.push({ file, path: parent || undefined })
+      return
+    }
+    if (!entry.isDirectory || !entry.createReader) return
+    const reader = entry.createReader()
+    while (true) {
+      const entries = await new Promise<DroppedEntry[]>((resolve) => reader.readEntries(resolve, () => resolve([])))
+      if (!entries.length) break
+      for (const child of entries) {
+        if (files.length >= maxFiles) break
+        await readEntry(child, [parent, entry.name].filter(Boolean).join('/'))
+      }
+      if (files.length >= maxFiles) break
+    }
+  }
+  const entries = Array.from(items).map((item) => item.webkitGetAsEntry?.() as DroppedEntry | null).filter((entry): entry is DroppedEntry => Boolean(entry))
+  if (!entries.length) return Array.from(items).slice(0, maxFiles).flatMap((item) => item.getAsFile() ? [{ file: item.getAsFile()! }] : [])
+  for (const entry of entries) {
+    if (files.length >= maxFiles) break
+    await readEntry(entry)
+  }
+  return files
+}
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
@@ -78,24 +128,15 @@ function formatSavings(original: number, output?: number) {
   return `${savings}%`
 }
 
-function getOutputName(fileName: string, outputFormat: OutputFormat) {
+function getOutputName(fileName: string, outputFormat: string) {
   const index = fileName.lastIndexOf('.')
   const baseName = index > 0 ? fileName.slice(0, index) : fileName
-  if (outputFormat === 'original') return `${baseName}-min${index > 0 ? fileName.slice(index) : '.jpg'}`
-  const extension = outputFormat === 'image/jpeg' ? 'jpg' : outputFormat === 'image/png' ? 'png' : 'webp'
+  const extension = outputFormat === 'original' || outputFormat === 'image/jpeg' ? 'jpg' : outputFormat === 'image/png' ? 'png' : outputFormat === 'image/webp' ? 'webp' : outputFormat === 'image/avif' ? 'avif' : outputFormat === 'image/gif' ? 'gif' : outputFormat === 'image/heic' || outputFormat === 'image/heif' ? 'heic' : 'tif'
   return `${baseName}-min.${extension}`
 }
 
-function getFormatDetails(file: File, outputFormat: OutputFormat) {
-  if (outputFormat === 'original') {
-    const mime = file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg'
-    return { mime, quality: mime === 'image/png' ? undefined : mime === 'image/jpeg' ? 0.84 : 0.78, label: mime === 'image/png' ? 'PNG' : mime === 'image/webp' ? 'WebP' : 'JPG' }
-  }
-  return { mime: outputFormat, quality: outputFormat === 'image/png' ? undefined : outputFormat === 'image/jpeg' ? 0.84 : 0.78, label: outputFormat === 'image/jpeg' ? 'JPG' : outputFormat === 'image/png' ? 'PNG' : 'WebP' }
-}
-
 function formatLabel(outputFormat: OutputFormat, language: Language) {
-  const format = outputFormat === 'image/jpeg' ? 'JPG' : outputFormat === 'image/png' ? 'PNG' : 'WebP'
+  const format = outputFormat === 'original' ? '' : getFormatLabel(outputFormat)
   if (language === 'en') return outputFormat === 'original' ? 'Keep default' : `Convert to ${format}`
   if (language === 'ja') return outputFormat === 'original' ? 'デフォルト' : `${format} に変換`
   if (language === 'ko') return outputFormat === 'original' ? '기본 유지' : `${format}로 변환`
@@ -103,52 +144,47 @@ function formatLabel(outputFormat: OutputFormat, language: Language) {
   return outputFormat === 'original' ? '保持默认' : `转换为 ${format}`
 }
 
-function getBatchDownloadLabel(items: ImageItem[], language: Language) {
-  const formats = [...new Set(items.map((item) => item.outputFormat).filter(Boolean))]
-  if (language === 'en') return formats.length === 1 ? `Download all ${formats[0]}` : 'Download all'
-  if (language === 'ja') return formats.length === 1 ? `${formats[0]}を一括ダウンロード` : '一括ダウンロード'
-  if (language === 'ko') return formats.length === 1 ? `${formats[0]} 모두 다운로드` : '모두 다운로드'
-  if (language === 'zh-TW') return formats.length === 1 ? `全部下載 ${formats[0]}` : '全部下載'
-  return formats.length === 1 ? `全部下载 ${formats[0]}` : '全部下载'
-}
-
 function getCopy(language: Language): AppCopy {
   if (language === 'en') return {
     home: 'QuackPress home', navLabel: 'Main navigation', tool: 'Compressor', how: 'How it works', language: 'English', login: 'Sign in', menu: 'Open menu',
     heroTitle: 'Lighter images,', heroTitleAccent: 'faster web.', heroDescription: 'Choose a format, upload images, preview the result, and download. Everything runs locally in your browser.', local: 'Local processing', localDescription: 'No signup. Your images stay on your device.',
-    drop: 'Drag or click to choose files', formats: 'Formats', max: '20 MB per file', settings: 'Image compression settings', output: 'Output format', keep: 'Keep default', level: 'Compression level', workspace: 'YOUR WORKSPACE', done: 'Compression complete.', working: 'Making images lighter.', files: 'files', fast: 'Local processing, speed first', outputPrefix: 'Output:', pause: 'Pause', resume: 'Resume', waiting: 'Images are being processed in your browser. Please wait before leaving.',
+    drop: 'Drag or click to choose files', formats: 'Formats', max: '20 MB per file', settings: 'Image compression settings', output: 'Output format', keep: 'Keep default', level: 'Compression level', folder: 'Choose folder', supportedFormats: 'JPG, PNG, WebP, AVIF, GIF, TIFF, HEIC', batchLimit: 'Up to 200 images · 512 MB per batch', exportAll: 'Export all', downloadFiles: 'Download files separately', exportZip: 'Export as ZIP archive', zipWorking: 'Creating ZIP...', exportFolder: 'Save to folder', loginEmail: 'Email address', sendLoginLink: 'Send sign-in link', signOut: 'Sign out', authMissing: 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-in.', workspace: 'YOUR WORKSPACE', done: 'Compression complete.', working: 'Making images lighter.', files: 'files', fast: 'Local processing, speed first', outputPrefix: 'Output:', pause: 'Pause', resume: 'Resume', waiting: 'Images are being processed in your browser. Please wait before leaving.',
     why: 'Less waiting,', whyAccent: 'more creating.', fastTitle: 'Fast enough to forget the wait', fastCopy: 'Everything runs in your browser. Your images take no detour through a server.', privateTitle: 'Your images stay private', privateCopy: 'QuackPress processes images locally in your browser. Nothing is uploaded.', clearTitle: 'Small, without visible loss', clearCopy: 'Smart encoding keeps important details while making files meaningfully smaller.', try: 'Try it', help: 'Help',
   }
   if (language === 'ja') return {
     home: 'QuackPress ホーム', navLabel: 'メインナビゲーション', tool: '圧縮ツール', how: '使い方', language: '日本語', login: 'ログイン', menu: 'メニューを開く',
     heroTitle: '画像を軽く、', heroTitleAccent: 'ウェブを速く。', heroDescription: '形式を選び、画像をアップロードして、結果を確認してダウンロード。すべてブラウザ内で処理します。', local: 'ローカル処理', localDescription: '登録不要。画像はデバイスから離れません。',
-    drop: 'ドラッグまたはクリックしてファイルを選択', formats: '対応形式', max: '1ファイル最大 20 MB', settings: '画像圧縮設定', output: '出力形式', keep: 'デフォルト', level: '圧縮レベル', workspace: 'YOUR WORKSPACE', done: '圧縮完了。', working: '画像を軽くしています。', files: 'ファイル', fast: 'ローカル処理、速度優先', outputPrefix: '出力:', pause: '一時停止', resume: '再開', waiting: 'ブラウザで画像を処理中です。完了までお待ちください。',
+    drop: 'ドラッグまたはクリックしてファイルを選択', formats: '対応形式', max: '1ファイル最大 20 MB', settings: '画像圧縮設定', output: '出力形式', keep: 'デフォルト', level: '圧縮レベル', folder: 'フォルダーを選択', supportedFormats: 'JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC', batchLimit: '一括最大200枚・512 MB', exportAll: 'すべて書き出す', downloadFiles: '個別にダウンロード', exportZip: 'ZIPで書き出す', zipWorking: 'ZIPを作成中…', exportFolder: 'フォルダーに保存', loginEmail: 'メールアドレス', sendLoginLink: 'ログインリンクを送信', signOut: 'ログアウト', authMissing: 'ログインを有効にするには Supabase の環境変数を設定してください。', workspace: 'YOUR WORKSPACE', done: '圧縮完了。', working: '画像を軽くしています。', files: 'ファイル', fast: 'ローカル処理、速度優先', outputPrefix: '出力:', pause: '一時停止', resume: '再開', waiting: 'ブラウザで画像を処理中です。完了までお待ちください。',
     why: '待ち時間を減らし、', whyAccent: '創造を増やす。', fastTitle: '待つことを忘れる速さ', fastCopy: 'すべてブラウザで処理。画像をサーバーへ送信しません。', privateTitle: '画像はデバイス内に', privateCopy: 'QuackPress はブラウザ内で画像を処理します。アップロードはありません。', clearTitle: '見た目を保って軽量化', clearCopy: '重要なディテールを残しながら、ファイルサイズを小さくします。', try: '試す', help: 'ヘルプ',
   }
   if (language === 'ko') return {
     home: 'QuackPress 홈', navLabel: '주 메뉴', tool: '압축 도구', how: '사용 방법', language: '한국어', login: '로그인', menu: '메뉴 열기',
     heroTitle: '이미지는 가볍게,', heroTitleAccent: '웹은 빠르게.', heroDescription: '형식을 선택하고 이미지를 업로드한 뒤 결과를 확인하고 다운로드하세요. 모든 처리는 브라우저에서 진행됩니다.', local: '로컬 처리', localDescription: '가입이 필요 없습니다. 이미지는 기기에 남습니다.',
-    drop: '드래그하거나 클릭하여 파일 선택', formats: '지원 형식', max: '파일당 최대 20 MB', settings: '이미지 압축 설정', output: '출력 형식', keep: '기본 유지', level: '압축 정도', workspace: 'YOUR WORKSPACE', done: '압축 완료.', working: '이미지를 가볍게 만드는 중입니다.', files: '개 파일', fast: '로컬 처리, 빠른 속도', outputPrefix: '출력:', pause: '일시정지', resume: '계속', waiting: '브라우저에서 이미지를 처리 중입니다. 완료될 때까지 기다려 주세요.',
+    drop: '드래그하거나 클릭하여 파일 선택', formats: '지원 형식', max: '파일당 최대 20 MB', settings: '이미지 압축 설정', output: '출력 형식', keep: '기본 유지', level: '압축 정도', folder: '폴더 선택', supportedFormats: 'JPG, PNG, WebP, AVIF, GIF, TIFF, HEIC', batchLimit: '한 번에 최대 200개 · 512 MB', exportAll: '전체 내보내기', downloadFiles: '개별 파일 다운로드', exportZip: 'ZIP 파일로 내보내기', zipWorking: 'ZIP 만드는 중...', exportFolder: '폴더에 저장', loginEmail: '이메일 주소', sendLoginLink: '로그인 링크 보내기', signOut: '로그아웃', authMissing: '로그인을 사용하려면 Supabase 환경 변수를 설정하세요.', workspace: 'YOUR WORKSPACE', done: '압축 완료.', working: '이미지를 가볍게 만드는 중입니다.', files: '개 파일', fast: '로컬 처리, 빠른 속도', outputPrefix: '출력:', pause: '일시정지', resume: '계속', waiting: '브라우저에서 이미지를 처리 중입니다. 완료될 때까지 기다려 주세요.',
     why: '기다림은 줄이고,', whyAccent: '창작은 늘리고.', fastTitle: '기다림을 잊을 만큼 빠르게', fastCopy: '모든 처리는 브라우저에서 진행됩니다. 이미지가 서버를 거치지 않습니다.', privateTitle: '이미지는 기기에 안전하게', privateCopy: 'QuackPress는 브라우저에서 이미지를 처리하며 업로드하지 않습니다.', clearTitle: '화질은 유지하고 용량은 줄이고', clearCopy: '중요한 디테일을 유지하면서 파일을 작게 만듭니다.', try: '사용해 보기', help: '도움말',
   }
   if (language === 'zh-TW') return {
     home: '壓縮鴨首頁', navLabel: '主導覽', tool: '壓縮工具', how: '運作方式', language: '繁體中文', login: '登入', menu: '開啟選單',
     heroTitle: '圖片變輕，', heroTitleAccent: '網頁更快。', heroDescription: '選擇格式、上傳圖片、預覽結果後直接下載。壓縮過程在瀏覽器本機完成。', local: '本機處理', localDescription: '無需註冊，圖片不會離開你的裝置。',
-    drop: '拖曳或點擊選擇檔案', formats: '支援格式', max: '單一檔案最大 20 MB', settings: '圖片壓縮設定', output: '輸出格式', keep: '保持預設', level: '壓縮程度', workspace: 'YOUR WORKSPACE', done: '壓縮完成。', working: '正在讓圖片變輕。', files: '個檔案', fast: '本機處理，速度優先', outputPrefix: '輸出：', pause: '暫停', resume: '繼續', waiting: '圖片正在瀏覽器中處理，離開頁面前請等待完成',
+    drop: '拖曳或點擊選擇檔案', formats: '支援格式', max: '單一檔案最大 20 MB', settings: '圖片壓縮設定', output: '輸出格式', keep: '保持預設', level: '壓縮程度', folder: '選擇資料夾', supportedFormats: 'JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC', batchLimit: '單批最多 200 張 · 512 MB', exportAll: '全部匯出', downloadFiles: '分別下載檔案', exportZip: '匯出為 ZIP 壓縮檔', zipWorking: '正在建立 ZIP…', exportFolder: '匯出至資料夾', loginEmail: '電子郵件', sendLoginLink: '傳送登入連結', signOut: '登出', authMissing: '設定 Supabase 環境變數後即可啟用登入。', workspace: 'YOUR WORKSPACE', done: '壓縮完成。', working: '正在讓圖片變輕。', files: '個檔案', fast: '本機處理，速度優先', outputPrefix: '輸出：', pause: '暫停', resume: '繼續', waiting: '圖片正在瀏覽器中處理，離開頁面前請等待完成',
     why: '少一點等待，', whyAccent: '多一點創造。', fastTitle: '快得讓人忘記等待', fastCopy: '所有處理都在瀏覽器中完成，圖片不會繞路經過伺服器。', privateTitle: '圖片不離開你的裝置', privateCopy: '壓縮鴨在瀏覽器本機處理圖片，不會上傳。', clearTitle: '保持清晰，檔案更小', clearCopy: '保留重要細節，同時有效縮小檔案。', try: '試用看看', help: '說明中心',
   }
   return {
     home: '压缩鸭首页', navLabel: '主导航', tool: '压缩工具', how: '怎么工作', language: '简体中文', login: '登录', menu: '打开菜单',
     heroTitle: '图片变轻，', heroTitleAccent: '网页更快。', heroDescription: '选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。', local: '本地处理', localDescription: '无需注册，图片不离开你的设备。',
-    drop: '拖拽或点击选择文件', formats: '支持格式', max: '单张文件最大 20 MB', settings: '图片压缩设置', output: '输出格式', keep: '保持默认', level: '压缩程度', workspace: 'YOUR WORKSPACE', done: '压缩完成。', working: '正在让图片变轻。', files: '个文件', fast: '本地处理，速度优先', outputPrefix: '输出：', pause: '暂停', resume: '继续', waiting: '图片正在浏览器中处理，离开页面前请等待完成',
+    drop: '拖拽或点击选择文件', formats: '支持格式', max: '单张文件最大 20 MB', settings: '图片压缩设置', output: '输出格式', keep: '保持默认', level: '压缩程度', folder: '选择文件夹', supportedFormats: 'JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC', batchLimit: '单批最多 200 张 · 512 MB', exportAll: '全部导出', downloadFiles: '逐张下载', exportZip: '导出为 ZIP 压缩包', zipWorking: '正在打包 ZIP…', exportFolder: '导出到文件夹', loginEmail: '邮箱地址', sendLoginLink: '发送登录链接', signOut: '退出登录', authMissing: '配置 Supabase 环境变量后即可启用登录。', workspace: '你的工作区', done: '压缩完成。', working: '正在压缩图片。', files: '个文件', fast: '本地处理 · 速度优先', outputPrefix: '输出：', pause: '暂停', resume: '继续', waiting: '图片正在本地处理中，请稍候。',
     why: '少一点等待，', whyAccent: '多一点创造。', fastTitle: '快得让人忘记等待', fastCopy: '所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。', privateTitle: '图片不离开你的设备', privateCopy: '压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。', clearTitle: '清晰，肉眼看不出差别', clearCopy: '智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。', try: '试试看', help: '帮助中心',
   }
 }
 
 function App() {
   const inputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
   const itemsRef = useRef<ImageItem[]>([])
+  const removedItemIdsRef = useRef(new Set<string>())
   const isPausedRef = useRef(false)
+  const zipMenuRef = useRef<HTMLDivElement>(null)
+  const schedulerRef = useRef<TaskScheduler<ImageItem> | null>(null)
   const [items, setItems] = useState<ImageItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -159,6 +195,13 @@ function App() {
   const [language, setLanguage] = useState<Language>('zh-CN')
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
+  const [isZipping, setIsZipping] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginMessage, setLoginMessage] = useState('')
+  const [isSendingLogin, setIsSendingLogin] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
   const [isNavVisible, setIsNavVisible] = useState(true)
   const navHideTimerRef = useRef<number | null>(null)
 
@@ -183,8 +226,10 @@ function App() {
   const completedItems = useMemo(() => items.filter((item) => item.status === 'done'), [items])
   const hasWork = items.length > 0
   const allDone = hasWork && items.every((item) => item.status === 'done' || item.status === 'error')
+  const hasFailures = items.some((item) => item.status === 'error')
   const totalOriginal = items.reduce((sum, item) => sum + item.originalSize, 0)
   const totalOutput = completedItems.reduce((sum, item) => sum + (item.outputSize ?? 0), 0)
+  const totalInputBytes = items.reduce((sum, item) => sum + item.originalSize, 0)
   const copy = getCopy(language)
 
   const updateItem = useCallback((id: string, update: Partial<ImageItem>) => {
@@ -195,11 +240,13 @@ function App() {
     async (item: ImageItem) => {
       updateItem(item.id, { status: 'compressing', progress: 8 })
       try {
-        const result = await compressLocally(item.file, outputFormat, compressionLevel, (progress) => updateItem(item.id, { progress }), () => isPausedRef.current)
+        const result = await compressLocally(item.file, item.requestedOutputFormat, item.compressionLevel, (progress) => updateItem(item.id, { progress }), () => isPausedRef.current)
+        if (removedItemIdsRef.current.has(item.id)) return
         const outputUrl = URL.createObjectURL(result.blob)
         updateItem(item.id, {
           outputUrl,
-          outputName: getOutputName(item.file.name, outputFormat),
+          outputBlob: result.blob,
+          outputName: getOutputName(item.file.name, result.mime),
           outputSize: result.blob.size,
           outputFormat: result.formatLabel,
           width: result.width,
@@ -211,61 +258,83 @@ function App() {
         updateItem(item.id, { status: 'error', error: language === 'en' ? 'Processing failed. Please retry.' : '图片处理失败，请重试' })
       }
     },
-    [compressionLevel, language, outputFormat, updateItem],
+    [updateItem],
   )
+
+  useEffect(() => {
+    const scheduler = new TaskScheduler<ImageItem>(getCompressionConcurrency(), compressItem)
+    scheduler.setPaused(isPausedRef.current)
+    schedulerRef.current = scheduler
+    return () => { schedulerRef.current = null }
+  }, [compressItem])
 
   const startQueued = useCallback(
     (newItems: ImageItem[]) => {
-      window.setTimeout(() => newItems.forEach((item) => void compressItem(item)), 160)
+      schedulerRef.current?.enqueue(newItems)
     },
-    [compressItem],
+    [],
   )
 
   const addFiles = useCallback(
-    (files: File[]) => {
-      const remaining = MAX_FILES - items.length
+    (files: { file: File; path?: string }[]) => {
+      const validation = validateFiles(files.map(({ file }) => file), items.length, totalInputBytes)
+      let acceptedIndex = 0
       const accepted: ImageItem[] = []
-      const errors: string[] = []
-      files.slice(0, remaining).forEach((file) => {
-        if (!ACCEPTED_TYPES.includes(file.type)) {
-          errors.push(language === 'en' ? `${file.name}: unsupported format` : `${file.name} 格式不支持`)
-          return
-        }
-        if (file.size > MAX_SIZE) {
-          errors.push(language === 'en' ? `${file.name}: over 20 MB` : `${file.name} 超过 20 MB`)
-          return
-        }
+      files.forEach(({ file, path }) => {
+        if (validation.accepted[acceptedIndex] !== file) return
+        acceptedIndex += 1
         const item: ImageItem = {
-          id: `${file.name}-${file.lastModified}-${Math.random()}`,
+          id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`,
           file,
           previewUrl: URL.createObjectURL(file),
           originalSize: file.size,
+          directoryPath: path,
+          inputFormat: detectInputFormat(file) ?? 'unknown',
+          compressionLevel,
+          requestedOutputFormat: outputFormat,
           progress: 0,
           status: 'queued',
         }
+        removedItemIdsRef.current.delete(item.id)
         accepted.push(item)
       })
-      if (files.length > remaining) errors.push(language === 'en' ? `Up to ${MAX_FILES} images per batch` : `单批最多处理 ${MAX_FILES} 张图片`)
-      if (errors.length) setNotice(errors[0])
+      const firstError = validation.errors[0]
+      if (firstError) {
+        const reason = firstError.reason
+        const detail = reason === 'unsupported' ? (language === 'en' ? 'unsupported format' : '格式暂不支持') : reason === 'file-too-large' ? (language === 'en' ? 'over 20 MB' : '单张超过 20 MB') : reason === 'batch-file-limit' ? (language === 'en' ? `maximum ${MAX_BATCH_FILES} images per batch` : `单批最多 ${MAX_BATCH_FILES} 张图片`) : (language === 'en' ? 'batch exceeds 512 MB' : '整批文件不能超过 512 MB')
+        setNotice(`${firstError.file.name}: ${detail}`)
+      }
       if (!accepted.length) return
       setItems((current) => [...current, ...accepted])
       startQueued(accepted)
     },
-    [items.length, language, startQueued],
+    [compressionLevel, language, outputFormat, startQueued, items.length, totalInputBytes],
   )
 
   const handleInput = (event: ChangeEvent<HTMLInputElement>) => {
-    addFiles(Array.from(event.target.files ?? []))
+    addFiles(Array.from(event.target.files ?? []).map((file) => ({ file })))
     event.target.value = ''
   }
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+  const handleFolderInput = (event: ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(event.target.files ?? []).map((file) => {
+      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath ?? ''
+      return { file, path: relativePath.includes('/') ? relativePath.slice(0, relativePath.lastIndexOf('/')) : undefined }
+    }))
+    event.target.value = ''
+  }
+
+  const handleDrop = async (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     setIsDragging(false)
-    addFiles(Array.from(event.dataTransfer.files))
+    const remainingCapacity = Math.max(1, MAX_BATCH_FILES - itemsRef.current.length + 1)
+    const files = await getDroppedFiles(event.dataTransfer.items, remainingCapacity)
+    addFiles(files)
   }
 
   const removeItem = (id: string) => {
+    removedItemIdsRef.current.add(id)
+    schedulerRef.current?.removeQueued((item) => item.id === id)
     setItems((current) => {
       const item = current.find((entry) => entry.id === id)
       if (item) {
@@ -277,8 +346,9 @@ function App() {
   }
 
   const retryItem = (item: ImageItem) => {
+    removedItemIdsRef.current.delete(item.id)
     updateItem(item.id, { status: 'queued', progress: 0, error: undefined })
-    compressItem({ ...item, status: 'queued', progress: 0 })
+    schedulerRef.current?.enqueue([{ ...item, status: 'queued', progress: 0 }])
   }
 
   const downloadItem = (item: ImageItem) => {
@@ -294,6 +364,73 @@ function App() {
       window.setTimeout(() => downloadItem(item), index * 120)
     })
   }
+
+  const downloadAllAsZip = async () => {
+    if (!completedItems.length || isZipping) return
+    setIsZipping(true)
+    setIsExportMenuOpen(false)
+    try {
+      const archive = await createZip(completedItems.filter((item) => item.outputBlob).map((item) => ({
+        name: item.outputName ?? getOutputName(item.file.name, item.requestedOutputFormat),
+        path: item.directoryPath,
+        blob: item.outputBlob!,
+      })), () => {})
+      const url = URL.createObjectURL(archive)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `quackpress-${new Date().toISOString().slice(0, 10)}.zip`
+      anchor.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch {
+      setNotice(language === 'en' ? 'ZIP export failed. Please try again.' : 'ZIP 导出失败，请重试')
+    } finally {
+      setIsZipping(false)
+    }
+  }
+
+  const downloadAllToFolder = async () => {
+    if (!completedItems.length || !window.showDirectoryPicker || isZipping) return
+    try {
+      const root = await window.showDirectoryPicker()
+      setIsZipping(true)
+      setIsExportMenuOpen(false)
+      await writeFilesToDirectory(root, completedItems.filter((item) => item.outputBlob).map((item) => ({
+        name: item.outputName ?? getOutputName(item.file.name, item.requestedOutputFormat),
+        path: item.directoryPath,
+        blob: item.outputBlob!,
+      })))
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setNotice(language === 'en' ? 'Folder export failed. Please try again.' : '文件夹导出失败，请重试')
+    } finally {
+      setIsZipping(false)
+    }
+  }
+
+  const sendLoginLink = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!supabase) {
+      setLoginMessage(language === 'en' ? 'Authentication is not configured yet.' : '登录服务尚未配置，请稍后再试。')
+      return
+    }
+    setIsSendingLogin(true)
+    setLoginMessage('')
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email: loginEmail.trim(), options: { emailRedirectTo: window.location.origin + window.location.pathname } })
+      setLoginMessage(error ? (language === 'en' ? error.message : '邮件发送失败，请检查邮箱后重试。') : (language === 'en' ? 'Sign-in link sent. Check your inbox.' : '登录链接已发送，请查看邮箱。'))
+    } catch {
+      setLoginMessage(language === 'en' ? 'Could not send the sign-in link. Please try again.' : '登录链接发送失败，请稍后重试。')
+    } finally {
+      setIsSendingLogin(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!supabase) return
+    void supabase.auth.getSession().then(({ data }) => setUserEmail(data.session?.user.email ?? ''))
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => setUserEmail(session?.user.email ?? ''))
+    return () => data.subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     if (!notice) return
@@ -326,12 +463,13 @@ function App() {
               {LANGUAGE_OPTIONS.map((option) => <button key={option.value} type="button" className={option.value === language ? 'selected' : ''} onClick={() => { setLanguage(option.value); setIsLanguageMenuOpen(false) }}>{option.label}</button>)}
             </div>}
           </div>
-          <button className="ghost-button login-button" type="button">{copy.login}</button>
+          {userEmail ? <div className="account-menu"><button className="ghost-button login-button" type="button" onClick={() => { void supabase?.auth.signOut() }}>{userEmail} · {copy.signOut}</button></div> : <button className="ghost-button login-button" type="button" onClick={() => { setLoginMessage(''); setIsLoginOpen(true) }}>{copy.login}</button>}
           <button className="mobile-menu" type="button" aria-label={copy.menu} aria-expanded={isMobileNavOpen} onClick={() => { setIsMobileNavOpen((value) => !value); setIsNavVisible(true) }}><Menu size={20} /></button>
         </div>
         {isMobileNavOpen && <nav className="mobile-nav-panel" aria-label={copy.navLabel}>
           <a href="#compress" onClick={() => setIsMobileNavOpen(false)}>{copy.tool}</a>
           <a href="#how-it-works" onClick={() => setIsMobileNavOpen(false)}>{copy.how}</a>
+          <button type="button" onClick={() => { setIsMobileNavOpen(false); if (userEmail) void supabase?.auth.signOut(); else { setLoginMessage(''); setIsLoginOpen(true) } }}>{userEmail ? `${userEmail} · ${copy.signOut}` : copy.login}</button>
         </nav>}
       </header>
 
@@ -353,27 +491,31 @@ function App() {
             onDragOver={(event) => event.preventDefault()}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click() }}
           >
-            <input ref={inputRef} type="file" accept={ACCEPTED_TYPES.join(',')} multiple hidden onChange={handleInput} />
-            <div className="dropzone-art"><CloudUpload size={30} strokeWidth={1.5} /><span className="dropzone-plus">+</span></div>
-            <div className="dropzone-title">{copy.drop}</div>
-            <div className="dropzone-meta"><span>{copy.formats}</span><strong>JPG, PNG, WebP</strong><i /> <span>{copy.max}</span></div>
+            <input ref={inputRef} type="file" accept={ACCEPTED_FORMATS.join(',')} multiple hidden onChange={handleInput} />
+            <input ref={folderInputRef} type="file" accept={ACCEPTED_FORMATS.join(',')} multiple hidden onChange={handleFolderInput} {...{ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>} />
+            <button className="dropzone-main" type="button" onClick={() => inputRef.current?.click()}>
+              <span className="dropzone-art"><CloudUpload size={30} strokeWidth={1.5} /><span className="dropzone-plus">+</span></span>
+              <span className="dropzone-title">{copy.drop}</span>
+              <span className="dropzone-meta"><span>{copy.formats}</span><strong>{copy.supportedFormats}</strong><i /> <span>{copy.max}</span></span>
+              <span className="dropzone-capacity">{copy.batchLimit}</span>
+            </button>
+            <button className="folder-picker" type="button" onClick={() => folderInputRef.current?.click()}><FolderInput size={15} />{copy.folder}</button>
           </div>
           <div className="settings-panel" aria-label={copy.settings}>
             <div className="format-selector" aria-label={copy.output}>
               <span className="format-selector-label">{copy.output}</span>
               <div className="format-options">
-                {([['original', copy.keep], ['image/jpeg', 'JPG'], ['image/png', 'PNG'], ['image/webp', 'WebP']] as [OutputFormat, string][]).map(([value, label]) => (
+                {OUTPUT_FORMATS.map(([value, fallback]) => {
+                  const label = value === 'original' ? copy.keep : fallback
+                  return (
                   <label className={`format-option ${outputFormat === value ? 'format-option-selected' : ''}`} key={value}>
                     <input type="radio" name="output-format" value={value} checked={outputFormat === value} onChange={() => setOutputFormat(value)} />
                     <span className="radio-mark" />
                     <span>{label}</span>
                   </label>
-                ))}
+                  )
+                })}
               </div>
             </div>
             <div className="compression-level" aria-label={copy.level}>
@@ -384,12 +526,16 @@ function App() {
           {hasWork && (
             <div className="queue-panel">
               <div className="queue-header">
-                <div><span className="section-kicker">{copy.workspace}</span><h2>{allDone ? copy.done : copy.working}</h2></div>
-                <div className="queue-actions">
-                  {allDone && <button className="primary-button compact" onClick={downloadAll}><Download size={16} /> {getBatchDownloadLabel(completedItems, language)}</button>}
+                <div><span className="section-kicker">{copy.workspace}</span><h2>{allDone && hasFailures ? (language === 'en' ? 'Finished with errors.' : '处理完成，部分图片失败。') : allDone ? copy.done : copy.working}</h2></div>
+              <div className="queue-actions">
+                {completedItems.length > 0 && <div className="export-menu" ref={zipMenuRef}>
+                  <button className="primary-button compact" type="button" onClick={downloadAll} disabled={isZipping}><Download size={16} />{copy.exportAll}<span>{[...new Set(completedItems.map((item) => item.outputFormat).filter(Boolean))].join(' / ')}</span></button>
+                  <button className="export-chevron" type="button" aria-label={copy.exportZip} aria-expanded={isExportMenuOpen} onClick={() => setIsExportMenuOpen((value) => !value)}><ChevronDown size={15} /></button>
+                  {isExportMenuOpen && <div className="export-options" role="menu"><button type="button" role="menuitem" onClick={() => { downloadAll(); setIsExportMenuOpen(false) }}>{copy.downloadFiles}</button><button type="button" role="menuitem" onClick={() => void downloadAllAsZip()} disabled={isZipping}>{isZipping ? copy.zipWorking : copy.exportZip}</button>{window.showDirectoryPicker && <button type="button" role="menuitem" onClick={() => void downloadAllToFolder()} disabled={isZipping}>{copy.exportFolder}</button>}</div>}
+                </div>}
                 </div>
               </div>
-              <div className="queue-summary"><span><FileStack size={15} /> {items.length} {copy.files}</span><span><Zap size={15} /> {allDone ? `${language === 'en' ? 'Saved' : language === 'ja' ? '削減' : language === 'ko' ? '절약' : language === 'zh-TW' ? '節省' : '共节省'} ${formatSavings(totalOriginal, totalOutput)}` : copy.fast}</span><span className="format-summary">{copy.outputPrefix} {formatLabel(outputFormat, language)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { isPausedRef.current = !value; return !value })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? copy.resume : copy.pause}</button></div>
+              <div className="queue-summary"><span><FileStack size={15} /> {items.length} {copy.files}</span><span><Zap size={15} /> {allDone ? `${language === 'en' ? 'Saved' : language === 'ja' ? '削減' : language === 'ko' ? '절약' : language === 'zh-TW' ? '節省' : '共节省'} ${formatSavings(totalOriginal, totalOutput)}` : copy.fast}</span><span className="format-summary">{copy.outputPrefix} {formatLabel(outputFormat, language)}</span><button className="pause-button" onClick={() => setIsPaused((value) => { const paused = !value; isPausedRef.current = paused; schedulerRef.current?.setPaused(paused); return paused })}>{isPaused ? <Play size={14} /> : <Pause size={14} />} {isPaused ? copy.resume : copy.pause}</button></div>
               <div className="items-list">
                 {items.map((item) => <ImageRow key={item.id} item={item} language={language} onRemove={removeItem} onRetry={retryItem} onDownload={downloadItem} onPreview={setActiveItem} />)}
               </div>
@@ -412,6 +558,7 @@ function App() {
 
       <footer className="footer"><span>© 2026 QuackPress</span><span>{language === 'en' ? 'Made for the web, with care.' : language === 'ja' ? 'ウェブのために、丁寧に。' : language === 'ko' ? '웹을 위해 정성껏 만들었습니다.' : language === 'zh-TW' ? '為網頁而作，用心壓縮。' : '为网页而作，用心压缩。'}</span><div><a href="#how-it-works">{copy.help}</a></div></footer>
       {activeItem && <PreviewModal item={activeItem} language={language} onClose={() => setActiveItem(null)} onDownload={downloadItem} />}
+      {isLoginOpen && <div className="modal-backdrop" role="presentation" onClick={() => setIsLoginOpen(false)}><section className="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" onClick={(event) => event.stopPropagation()}><div className="login-modal-header"><div><span className="section-kicker">QUACKPRESS</span><h2 id="login-title">{copy.login}</h2></div><button className="icon-button" type="button" onClick={() => setIsLoginOpen(false)} aria-label={language === 'en' ? 'Close' : '关闭'}><X size={18} /></button></div><form onSubmit={(event) => void sendLoginLink(event)}><label htmlFor="login-email">{copy.loginEmail}</label><input id="login-email" type="email" required autoComplete="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} placeholder="name@example.com" /><button className="primary-button" type="submit" disabled={isSendingLogin}>{isSendingLogin ? <LoaderCircle className="spin" size={16} /> : null}{copy.sendLoginLink}</button></form>{loginMessage && <p className="login-message" role="status">{loginMessage}</p>}{!isAuthConfigured && <p className="login-configuration">{copy.authMissing}</p>}</section></div>}
     </div>
   )
 }
