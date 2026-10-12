@@ -6,6 +6,7 @@ export const COMPRESSION_LEVELS = [20, 35, 50, 65, 80] as const
 
 export type LocalCompressionResult = {
   blob: Blob
+  previewBlob?: Blob
   width: number
   height: number
   mime: string
@@ -134,16 +135,18 @@ export async function compressLocally(
   await waitForResume(isPaused)
   const mime = getOutputMime(file, outputFormat)
   const inputFormat = detectInputFormat(file)
-  if (outputFormat === 'original' && ['gif', 'heic', 'tiff'].includes(inputFormat ?? '')) {
-    onProgress(100)
-    const inputMime = inputFormat === 'tiff' ? 'image/tiff' : inputFormat === 'gif' ? 'image/gif' : file.type || 'image/heic'
-    return { blob: file, width: 0, height: 0, mime: inputMime, formatLabel: getFormatLabel(inputMime) }
-  }
   const decoded = await decodeImageFile(file)
   const { canvas, frames } = decoded
   const width = canvas.width
   const height = canvas.height
   onProgress(18)
+
+  if (outputFormat === 'original' && ['gif', 'heic', 'tiff'].includes(inputFormat ?? '')) {
+    const inputMime = inputFormat === 'tiff' ? 'image/tiff' : inputFormat === 'gif' ? 'image/gif' : file.type || 'image/heic'
+    const previewBlob = await encodeImage(canvas, 'image/png')
+    onProgress(100)
+    return { blob: file, previewBlob, width, height, mime: inputMime, formatLabel: getFormatLabel(inputMime) }
+  }
 
   if (mime === 'image/png' || mime === 'image/tiff' || mime === 'image/gif') {
     await waitForResume(isPaused)

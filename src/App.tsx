@@ -242,8 +242,10 @@ function App() {
       try {
         const result = await compressLocally(item.file, item.requestedOutputFormat, item.compressionLevel, (progress) => updateItem(item.id, { progress }), () => isPausedRef.current)
         if (removedItemIdsRef.current.has(item.id)) return
-        const outputUrl = URL.createObjectURL(result.blob)
+        const outputUrl = URL.createObjectURL(result.previewBlob ?? result.blob)
+        if (result.previewBlob) URL.revokeObjectURL(item.previewUrl)
         updateItem(item.id, {
+          previewUrl: result.previewBlob ? outputUrl : item.previewUrl,
           outputUrl,
           outputBlob: result.blob,
           outputName: getOutputName(item.file.name, result.mime),
@@ -352,11 +354,13 @@ function App() {
   }
 
   const downloadItem = (item: ImageItem) => {
-    if (!item.outputUrl) return
+    if (!item.outputBlob) return
     const link = document.createElement('a')
-    link.href = item.outputUrl
+    const downloadUrl = URL.createObjectURL(item.outputBlob)
+    link.href = downloadUrl
     link.download = item.outputName ?? getOutputName(item.file.name, outputFormat)
     link.click()
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000)
   }
 
   const downloadAll = async () => {
