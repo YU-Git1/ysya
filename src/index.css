@@ -181,6 +181,13 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
   .compression-range-value { position: absolute; top: 50%; z-index: 1; width: 16px; transform: translate(-50%, -50%); color: #fff; font: 500 9px 'DM Mono', monospace; text-align: center; pointer-events: none; }
 }
 
+.format-selector-label, .compression-level-heading {
+  color: #8b9183;
+  font: 500 12px/20px 'Manrope', sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .format-selector-label { font-size: 12px; }
 .compression-range-value { position: absolute; top: 50%; z-index: 1; display: grid; width: 16px; height: 16px; place-items: center; transform: translate(-50%, -50%); color: #fff; font: 700 10px/1 'DM Mono', monospace; text-align: center; text-shadow: 0 1px 1px #536313; pointer-events: none; }
 @media (max-width: 800px) { .dropzone-main { min-height: 230px; }.dropzone-meta { flex-wrap: wrap; justify-content: center; }.mobile-nav-panel { z-index: 5; } }
