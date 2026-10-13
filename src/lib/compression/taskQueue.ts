@@ -1,5 +1,5 @@
 export function getCompressionConcurrency(deviceMemory = navigator.deviceMemory ?? 4, hardwareConcurrency = navigator.hardwareConcurrency ?? 2) {
-  return deviceMemory <= 2 || hardwareConcurrency <= 2 ? 1 : 2
+  return deviceMemory <= 4 || hardwareConcurrency <= 2 ? 1 : 2
 }
 
 export class TaskScheduler<T> {

@@ -83,11 +83,14 @@ async function visualScore(sourceSample: HTMLCanvasElement, blob: Blob) {
     if (!sourcePixels) return 0
     let error = 0
     for (let index = 0; index < sourcePixels.length; index += 4) {
-      error += Math.abs(sourcePixels[index] - candidatePixels[index])
-      error += Math.abs(sourcePixels[index + 1] - candidatePixels[index + 1])
-      error += Math.abs(sourcePixels[index + 2] - candidatePixels[index + 2])
+      const sourceAlpha = sourcePixels[index + 3] / 255
+      const candidateAlpha = candidatePixels[index + 3] / 255
+      error += Math.abs(sourceAlpha - candidateAlpha) * 255
+      error += Math.abs(sourcePixels[index] * sourceAlpha - candidatePixels[index] * candidateAlpha)
+      error += Math.abs(sourcePixels[index + 1] * sourceAlpha - candidatePixels[index + 1] * candidateAlpha)
+      error += Math.abs(sourcePixels[index + 2] * sourceAlpha - candidatePixels[index + 2] * candidateAlpha)
     }
-    return 1 - error / (sourcePixels.length / 4 * 3 * 255)
+    return 1 - error / (sourcePixels.length / 4 * 4 * 255)
   } finally {
     bitmap.close()
   }
@@ -150,14 +153,18 @@ export async function compressLocally(
 
   if (mime === 'image/png' || mime === 'image/tiff' || mime === 'image/gif') {
     await waitForResume(isPaused)
-    const blob = await encodeImage(canvas, mime, undefined, mime === 'image/gif' ? frames : undefined)
+    const encoded = await encodeImage(canvas, mime, undefined, mime === 'image/gif' ? frames : undefined, compressionLevel)
+    const sameFormat = (mime === 'image/png' && inputFormat === 'png') || (mime === 'image/gif' && inputFormat === 'gif') || (mime === 'image/tiff' && inputFormat === 'tiff')
+    const blob = outputFormat === 'original' && sameFormat && encoded.size >= file.size ? file : encoded
     onProgress(100)
     return { blob, width, height, mime, formatLabel: getFormatLabel(mime) }
   }
 
   const best = await chooseLossyCandidate(canvas, mime, file.size, compressionLevel, isPaused, onProgress)
+  const sameFormat = (mime === 'image/jpeg' && inputFormat === 'jpeg') || (mime === 'image/webp' && inputFormat === 'webp') || (mime === 'image/avif' && inputFormat === 'avif')
+  const blob = outputFormat === 'original' && sameFormat && best.blob.size >= file.size ? file : best.blob
   onProgress(100)
-  return { blob: best.blob, width, height, mime, formatLabel: getFormatLabel(mime), quality: best.quality }
+  return { blob, width, height, mime, formatLabel: getFormatLabel(mime), quality: blob === file ? undefined : best.quality }
 }
 
 export type { DecodedFrame }

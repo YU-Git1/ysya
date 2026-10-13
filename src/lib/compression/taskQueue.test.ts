@@ -5,6 +5,7 @@ describe('compression task queue', () => {
   it('limits work to device capacity and never exceeds the upper bound', () => {
     expect(getCompressionConcurrency(2, 8)).toBe(1)
     expect(getCompressionConcurrency(8, 2)).toBe(1)
+    expect(getCompressionConcurrency(4, 8)).toBe(1)
     expect(getCompressionConcurrency(8, 8)).toBe(2)
     expect(getCompressionConcurrency(32, 32)).toBe(2)
   })

@@ -1,12 +1,17 @@
-import { Zip, ZipPassThrough } from 'fflate'
+import { Zip, ZipDeflate } from 'fflate'
 
 export type ZipFileInput = { name: string; path?: string; blob: Blob }
 const ZIP_READ_CHUNK_BYTES = 1024 * 1024
 
 export function uniqueZipPath(path: string, usedPaths: Set<string>) {
-  const normalized = path.replaceAll('\\', '/').split('/').filter((part) => part && part !== '.' && part !== '..').join('/') || 'image'
-  if (!usedPaths.has(normalized)) {
-    usedPaths.add(normalized)
+  const normalized = path.replaceAll('\\', '/').split('/').filter((part) => part && part !== '.' && part !== '..')
+    .map((part) => {
+      const safe = part.replace(/[\u0000-\u001f<>:"|?*]/g, '_').replace(/[. ]+$/g, '') || 'image'
+      return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(safe) ? `_${safe}` : safe
+    }).join('/') || 'image'
+  const pathKey = (value: string) => value.normalize('NFC').toLocaleLowerCase('en-US')
+  if (!usedPaths.has(pathKey(normalized))) {
+    usedPaths.add(pathKey(normalized))
     return normalized
   }
   const separator = normalized.lastIndexOf('/')
@@ -17,11 +22,11 @@ export function uniqueZipPath(path: string, usedPaths: Set<string>) {
   const extension = dot > 0 ? filename.slice(dot) : ''
   let counter = 2
   let unique = `${directory}${base} (${counter})${extension}`
-  while (usedPaths.has(unique)) {
+  while (usedPaths.has(pathKey(unique))) {
     counter += 1
     unique = `${directory}${base} (${counter})${extension}`
   }
-  usedPaths.add(unique)
+  usedPaths.add(pathKey(unique))
   return unique
 }
 
@@ -47,7 +52,7 @@ export async function createZip(files: ZipFileInput[], onProgress: (completed: n
   for (const [fileIndex, file] of files.entries()) {
     if (failed) throw failed
     const entryName = uniqueZipPath(`${file.path ? `${file.path}/` : ''}${file.name}`, usedPaths)
-    const entry = new ZipPassThrough(entryName)
+    const entry = new ZipDeflate(entryName, { level: 6 })
     zip.add(entry)
     if (file.blob.size === 0) {
       entry.push(new Uint8Array(), true)
@@ -78,5 +83,5 @@ export async function createZip(files: ZipFileInput[], onProgress: (completed: n
   zip.end()
   await finished
   if (failed) throw failed
-  return new Blob(chunks.map((chunk) => new Uint8Array(chunk)), { type: 'application/zip' })
+  return new Blob(chunks as BlobPart[], { type: 'application/zip' })
 }

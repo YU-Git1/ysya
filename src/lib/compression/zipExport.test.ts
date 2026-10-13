@@ -16,6 +16,14 @@ describe('ZIP export', () => {
 
   it('normalizes unsafe path segments', () => {
     expect(uniqueZipPath('../a/../../image.png', new Set())).toBe('a/image.png')
+    expect(uniqueZipPath('folder/bad:name?.jpg', new Set())).toBe('folder/bad_name_.jpg')
+    expect(uniqueZipPath('CON.txt', new Set())).toBe('_CON.txt')
+  })
+
+  it('avoids names that collide on case-insensitive file systems', () => {
+    const used = new Set<string>()
+    expect(uniqueZipPath('Photos/Image.jpg', used)).toBe('Photos/Image.jpg')
+    expect(uniqueZipPath('photos/image.JPG', used)).toBe('photos/image (2).JPG')
   })
 
   it('streams large blobs in bounded chunks', async () => {
@@ -23,5 +31,6 @@ describe('ZIP export', () => {
     const blob = await createZip([{ name: 'large.txt', blob: new Blob([contents]) }], () => {})
     const archive = unzipSync(new Uint8Array(await blob.arrayBuffer()))
     expect(archive['large.txt']).toHaveLength(contents.length)
+    expect(blob.size).toBeLessThan(contents.length)
   })
 })

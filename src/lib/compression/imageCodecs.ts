@@ -9,6 +9,16 @@ const MAX_IMAGE_PIXELS = 40_000_000
 const MAX_ANIMATION_PIXELS = 60_000_000
 const MAX_GIF_FRAMES = 300
 
+export function getGifPaletteSize(compressionLevel: number) {
+  const level = Math.min(5, Math.max(1, Math.round(compressionLevel)))
+  return [256, 224, 176, 112, 64][level - 1]
+}
+
+export function getPngOptimisationLevel(compressionLevel: number) {
+  const level = Math.min(5, Math.max(1, Math.round(compressionLevel)))
+  return Math.min(4, level)
+}
+
 function createCanvas(imageData: ImageData) {
   const canvas = document.createElement('canvas')
   canvas.width = imageData.width
@@ -17,6 +27,16 @@ function createCanvas(imageData: ImageData) {
   if (!context) throw new Error('BROWSER_CANVAS_UNAVAILABLE')
   context.putImageData(imageData, 0, 0)
   return canvas
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality?: number) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) return reject(new Error('ENCODE_FAILED'))
+      if (blob.type !== mime) return reject(new Error('ENCODER_UNSUPPORTED_FORMAT'))
+      resolve(blob)
+    }, mime, quality)
+  })
 }
 
 async function decodeGif(file: File): Promise<DecodedImage> {
@@ -31,17 +51,20 @@ async function decodeGif(file: File): Promise<DecodedImage> {
   const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context) throw new Error('BROWSER_CANVAS_UNAVAILABLE')
   const decodedFrames: DecodedFrame[] = []
+  let previousDisposal = 0
+  let previousDimensions: { left: number; top: number; width: number; height: number } | null = null
   let restorePrevious: ImageData | null = null
 
   for (const frame of frames) {
-    const disposal = frame.disposalType
-    if (disposal === 3 && restorePrevious) context.putImageData(restorePrevious, 0, 0)
-    if (disposal === 2) context.clearRect(frame.dims.left, frame.dims.top, frame.dims.width, frame.dims.height)
-    restorePrevious = disposal === 3 ? context.getImageData(0, 0, canvas.width, canvas.height) : null
+    if (previousDisposal === 3 && restorePrevious) context.putImageData(restorePrevious, 0, 0)
+    if (previousDisposal === 2 && previousDimensions) context.clearRect(previousDimensions.left, previousDimensions.top, previousDimensions.width, previousDimensions.height)
+    restorePrevious = frame.disposalType === 3 ? context.getImageData(0, 0, canvas.width, canvas.height) : null
     const patch = new ImageData(new Uint8ClampedArray(frame.patch), frame.dims.width, frame.dims.height)
     const patchCanvas = createCanvas(patch)
     context.drawImage(patchCanvas, frame.dims.left, frame.dims.top)
     decodedFrames.push({ imageData: context.getImageData(0, 0, canvas.width, canvas.height), delay: frame.delay || 100 })
+    previousDisposal = frame.disposalType
+    previousDimensions = frame.dims
   }
   if (decodedFrames[0]) context.putImageData(decodedFrames[0].imageData, 0, 0)
   return { canvas, frames: decodedFrames }
@@ -99,7 +122,7 @@ export async function decodeImageFile(file: File): Promise<DecodedImage> {
   return { canvas }
 }
 
-export async function encodeImage(canvas: HTMLCanvasElement, mime: string, quality?: number, frames?: DecodedFrame[]) {
+export async function encodeImage(canvas: HTMLCanvasElement, mime: string, quality?: number, frames?: DecodedFrame[], compressionLevel = 1) {
   if (mime === 'image/avif') {
     const { default: encodeAvif } = await import('@jsquash/avif/encode')
     const imageData = canvas.getContext('2d', { willReadFrequently: true })?.getImageData(0, 0, canvas.width, canvas.height)
@@ -120,18 +143,31 @@ export async function encodeImage(canvas: HTMLCanvasElement, mime: string, quali
     const outputFrames = frames?.length ? frames : [{ imageData: context.getImageData(0, 0, canvas.width, canvas.height), delay: 100 }]
     outputFrames.forEach((frame, index) => {
       const rgba = frame.imageData.data
-      const palette = quantize(rgba, index === 0 ? 256 : 256, { format: 'rgba4444', oneBitAlpha: true })
+      const palette = quantize(rgba, getGifPaletteSize(compressionLevel), { format: 'rgba4444', oneBitAlpha: true })
       encoder.writeFrame(applyPalette(rgba, palette, 'rgba4444'), frame.imageData.width, frame.imageData.height, {
         palette,
         delay: frame.delay,
         transparent: true,
         transparentIndex: palette.findIndex((color) => color[3] < 128),
+        dispose: 2,
       })
     })
     encoder.finish()
     return new Blob([Uint8Array.from(encoder.bytes()).buffer], { type: mime })
   }
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('ENCODE_FAILED')), mime, quality)
-  })
+  const sourceCanvas = mime === 'image/jpeg' ? document.createElement('canvas') : canvas
+  if (sourceCanvas !== canvas) {
+    sourceCanvas.width = canvas.width
+    sourceCanvas.height = canvas.height
+    const context = sourceCanvas.getContext('2d')
+    if (!context) throw new Error('BROWSER_CANVAS_UNAVAILABLE')
+    context.fillStyle = '#fff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(canvas, 0, 0)
+  }
+  const canvasBlob = await canvasToBlob(sourceCanvas, mime, quality)
+  if (mime !== 'image/png') return canvasBlob
+  const { optimise } = await import('@jsquash/oxipng')
+  const optimised = await optimise(await canvasBlob.arrayBuffer(), { level: getPngOptimisationLevel(compressionLevel), optimiseAlpha: false })
+  return new Blob([optimised], { type: mime })
 }
