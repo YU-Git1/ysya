@@ -215,15 +215,6 @@ h1 em { color: #99af25; font-family: 'Playfair Display', serif; font-weight: 700
   .compression-range-value { position: absolute; top: 50%; z-index: 1; width: 16px; transform: translate(-50%, -50%); color: #fff; font: 500 9px 'DM Mono', monospace; text-align: center; pointer-events: none; }
 }
 
-/* Keep folder affordances visible after the shared responsive rules. */
-.folder-entry { position: absolute; right: 16px; bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.folder-entry .folder-picker { position: static; margin: 0; }
-@media (max-width: 800px) {
-  .folder-entry { right: 12px; bottom: 10px; max-width: calc(100% - 24px); }
-  .folder-entry .folder-hint { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .queue-summary .batch-summary { display: inline-flex; }
-}
-
 .format-selector-label, .compression-level-heading {
   color: #8b9183;
   font: 500 12px/20px 'Manrope', sans-serif;
