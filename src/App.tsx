@@ -233,6 +233,7 @@ function App() {
   const [isSendingLogin, setIsSendingLogin] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [isNavVisible, setIsNavVisible] = useState(true)
+  const [activePage, setActivePage] = useState<'home' | 'updates'>(() => window.location.hash === '#updates' ? 'updates' : 'home')
   const navHideTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -460,6 +461,12 @@ function App() {
   }
 
   useEffect(() => {
+    const handleHashChange = () => setActivePage(window.location.hash === '#updates' ? 'updates' : 'home')
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  useEffect(() => {
     if (!supabase) return
     void supabase.auth.getSession().then(({ data }) => setUserEmail(data.session?.user.email ?? ''))
     const { data } = supabase.auth.onAuthStateChange((_event, session) => setUserEmail(session?.user.email ?? ''))
@@ -487,9 +494,9 @@ function App() {
           <span className="brand-name">{language === 'zh-CN' ? '压缩鸭' : language === 'zh-TW' ? '壓縮鴨' : 'QuackPress'}<span className="brand-english">{language === 'en' ? 'IMAGE TOOL' : 'QUACKPRESS'}</span></span>
         </a>
         <nav className="desktop-nav" aria-label={copy.navLabel}>
-          <a className="nav-active" href="#compress">{copy.tool}</a>
+          <a className={activePage === 'home' ? 'nav-active' : ''} href="#compress">{copy.tool}</a>
           <a href="#how-it-works">{copy.how}</a>
-          <a href="#updates">{copy.updates}</a>
+          <a className={activePage === 'updates' ? 'nav-active' : ''} href="#updates">{copy.updates}</a>
         </nav>
         <div className="topbar-actions">
           <div className="language-menu">
@@ -510,6 +517,7 @@ function App() {
       </header>
 
       <main id="top">
+        {activePage === 'updates' ? <UpdateLog language={language} /> : <>
         <section className="hero-section" id="intro">
           <div className="hero-copy">
             <div className="eyebrow"><span className="eyebrow-line" /> QUACKPRESS IMAGE TOOL</div>
@@ -593,7 +601,7 @@ function App() {
           </div>
         </section>
 
-        <UpdateLog language={language} />
+        </>}
 
       </main>
 
