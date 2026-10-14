@@ -211,9 +211,10 @@ function getUpdateLog(language: Language): { kicker: string; title: string; desc
   ] }
 }
 
-function getPageFromHash(hash: string): 'home' | 'how' | 'updates' {
+function getPageFromHash(hash: string): 'home' | 'how' | 'updates' | 'login' {
   if (hash === '#updates') return 'updates'
   if (hash === '#how-it-works') return 'how'
+  if (hash === '#login') return 'login'
   return 'home'
 }
 
@@ -323,13 +324,12 @@ function App() {
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const [isZipping, setIsZipping] = useState(false)
-  const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginMessage, setLoginMessage] = useState('')
   const [isSendingLogin, setIsSendingLogin] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [isNavVisible, setIsNavVisible] = useState(true)
-  const [activePage, setActivePage] = useState<'home' | 'how' | 'updates'>(() => getPageFromHash(window.location.hash))
+  const [activePage, setActivePage] = useState<'home' | 'how' | 'updates' | 'login'>(() => getPageFromHash(window.location.hash))
   const navHideTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -608,19 +608,19 @@ function App() {
               {LANGUAGE_OPTIONS.map((option) => <button key={option.value} type="button" className={option.value === language ? 'selected' : ''} onClick={() => { setLanguage(option.value); setIsLanguageMenuOpen(false) }}>{option.label}</button>)}
             </div>}
           </div>
-          {userEmail ? <div className="account-menu"><button className="ghost-button login-button" type="button" onClick={() => { void supabase?.auth.signOut() }}>{userEmail} · {copy.signOut}</button></div> : <button className="ghost-button login-button" type="button" onClick={() => { setLoginMessage(''); setIsLoginOpen(true) }}>{copy.login}</button>}
+          {userEmail ? <div className="account-menu"><button className="ghost-button login-button" type="button" onClick={() => { void supabase?.auth.signOut() }}>{userEmail} · {copy.signOut}</button></div> : <a className="ghost-button login-button" href="#login" onClick={() => setLoginMessage('')}>{copy.login}</a>}
           <button className="mobile-menu" type="button" aria-label={copy.menu} aria-expanded={isMobileNavOpen} onClick={() => { setIsMobileNavOpen((value) => !value); setIsNavVisible(true) }}><Menu size={20} /></button>
         </div>
         {isMobileNavOpen && <nav className="mobile-nav-panel" aria-label={copy.navLabel}>
           <a href="#compress" onClick={() => setIsMobileNavOpen(false)}>{copy.tool}</a>
           <a href="#how-it-works" onClick={() => setIsMobileNavOpen(false)}>{copy.how}</a>
           <a href="#updates" onClick={() => setIsMobileNavOpen(false)}>{copy.updates}</a>
-          <button type="button" onClick={() => { setIsMobileNavOpen(false); if (userEmail) void supabase?.auth.signOut(); else { setLoginMessage(''); setIsLoginOpen(true) } }}>{userEmail ? `${userEmail} · ${copy.signOut}` : copy.login}</button>
+          {userEmail ? <button type="button" onClick={() => { setIsMobileNavOpen(false); void supabase?.auth.signOut() }}>{userEmail} · {copy.signOut}</button> : <a href="#login" onClick={() => { setIsMobileNavOpen(false); setLoginMessage('') }}>{copy.login}</a>}
         </nav>}
       </header>
 
       <main id="top">
-        {activePage === 'updates' ? <UpdateLog language={language} /> : activePage === 'how' ? <HowItWorks language={language} /> : <>
+        {activePage === 'updates' ? <UpdateLog language={language} /> : activePage === 'how' ? <HowItWorks language={language} /> : activePage === 'login' ? <LoginPage copy={copy} loginEmail={loginEmail} setLoginEmail={setLoginEmail} loginMessage={loginMessage} isSendingLogin={isSendingLogin} sendLoginLink={sendLoginLink} /> : <>
         <section className="workspace-section" id="compress">
           <div
             className={`dropzone ${isDragging ? 'dropzone-active' : ''}`}
@@ -694,9 +694,25 @@ function App() {
 
       <footer className="footer"><span>© 2026 QuackPress</span><span>{language === 'en' ? 'Made for the web, with care.' : language === 'ja' ? 'ウェブのために、丁寧に。' : language === 'ko' ? '웹을 위해 정성껏 만들었습니다.' : language === 'zh-TW' ? '為網頁而作，用心壓縮。' : '为网页而作，用心压缩。'}</span><div><a href="#how-it-works">{copy.help}</a><a href="#updates">{copy.updates}</a></div></footer>
       {activeItem && <PreviewModal item={activeItem} language={language} onClose={() => setActiveItem(null)} onDownload={downloadItem} />}
-      {isLoginOpen && <div className="modal-backdrop" role="presentation" onClick={() => setIsLoginOpen(false)}><section className="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" onClick={(event) => event.stopPropagation()}><div className="login-modal-header"><div><span className="section-kicker">QUACKPRESS</span><h2 id="login-title">{copy.login}</h2></div><button className="icon-button" type="button" onClick={() => setIsLoginOpen(false)} aria-label={language === 'en' ? 'Close' : '关闭'}><X size={18} /></button></div><form onSubmit={(event) => void sendLoginLink(event)}><label htmlFor="login-email">{copy.loginEmail}</label><input id="login-email" type="email" required autoComplete="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} placeholder="name@example.com" /><button className="primary-button" type="submit" disabled={isSendingLogin}>{isSendingLogin ? <LoaderCircle className="spin" size={16} /> : null}{copy.sendLoginLink}</button></form>{loginMessage && <p className="login-message" role="status">{loginMessage}</p>}{!isAuthConfigured && <p className="login-configuration">{copy.authMissing}</p>}</section></div>}
     </div>
   )
+}
+
+function LoginPage({ copy, loginEmail, setLoginEmail, loginMessage, isSendingLogin, sendLoginLink }: { copy: AppCopy; loginEmail: string; setLoginEmail: (value: string) => void; loginMessage: string; isSendingLogin: boolean; sendLoginLink: (event: React.FormEvent<HTMLFormElement>) => void }) {
+  return <section className="login-page" aria-labelledby="login-title">
+    <div className="login-page-inner">
+      <span className="section-kicker">QUACKPRESS</span>
+      <h1 id="login-title">{copy.login}</h1>
+      <p className="login-page-copy">{copy.localDescription}</p>
+      <form onSubmit={sendLoginLink}>
+        <label htmlFor="login-email">{copy.loginEmail}</label>
+        <input id="login-email" type="email" required autoComplete="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} placeholder="name@example.com" />
+        <button className="primary-button" type="submit" disabled={isSendingLogin}>{isSendingLogin ? <LoaderCircle className="spin" size={16} /> : null}{copy.sendLoginLink}</button>
+      </form>
+      {loginMessage && <p className="login-message" role="status">{loginMessage}</p>}
+      {!isAuthConfigured && <p className="login-configuration">{copy.authMissing}</p>}
+    </div>
+  </section>
 }
 
 function UpdateLog({ language }: { language: Language }) {
