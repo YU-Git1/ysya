@@ -16,6 +16,7 @@ import {
   FolderInput,
   FileImage,
   FileStack,
+  Eye,
   Info,
   LoaderCircle,
   LockKeyhole,
@@ -25,6 +26,7 @@ import {
   Play,
   RefreshCw,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Trash2,
   X,
@@ -179,6 +181,7 @@ function getCopy(language: Language): AppCopy {
 
 type UpdateEntry = { date: string; tag: string; title: string; copy: string }
 type PositioningContent = { audienceKicker: string; audienceTitle: string; audienceDescription: string; audiences: { title: string; copy: string }[]; flowKicker: string; flowTitle: string; steps: { label: string; title: string; copy: string }[] }
+type AdvantageContent = { kicker: string; title: string; items: { title: string; copy: string }[] }
 
 function getUpdateLog(language: Language): { kicker: string; title: string; description: string; latest: string; entries: UpdateEntry[] } {
   if (language === 'en') return { kicker: 'RELEASE NOTES', title: 'What is new.', description: 'A clear record of the improvements behind QuackPress.', latest: 'Latest', entries: [
@@ -259,6 +262,44 @@ function getPositioningContent(language: Language): PositioningContent {
     { label: '01', title: '放入文件或文件夹', copy: '单张图片或整个文件夹都能导入，目录路径会保留。' },
     { label: '02', title: '设置压缩取舍', copy: '保持原格式或选择输出格式，再调整压缩程度。' },
     { label: '03', title: '确认并导出', copy: '对比结果后，可逐张下载、导出 ZIP 或文件夹。' },
+  ] }
+}
+
+function getAdvantageContent(language: Language): AdvantageContent {
+  if (language === 'en') return { kicker: 'WHY QUACKPRESS', title: 'Five reasons to keep it local.', items: [
+    { title: 'Private by default', copy: 'Images are decoded, compressed, and exported on your device. Nothing is sent to a server.' },
+    { title: 'Folder-first batching', copy: 'Drop a whole folder, keep its paths, and export the finished set in one step.' },
+    { title: 'Formats that travel', copy: 'Bring JPG, PNG, WebP, AVIF, GIF, TIFF, or HEIC and choose a modern output when needed.' },
+    { title: 'Good on every screen', copy: 'The upload flow, queue, comparison view, and controls adapt to phones, tablets, and desktops.' },
+    { title: 'Preview before delivery', copy: 'Compare original and compressed images side by side or with a movable split handle.' },
+  ] }
+  if (language === 'ja') return { kicker: 'QUACKPRESS の理由', title: '本機で使う5つの理由。', items: [
+    { title: 'プライバシーを優先', copy: '画像の解読・圧縮・出力はデバイス内で完結し、サーバーへ送信しません。' },
+    { title: 'フォルダーを一括処理', copy: 'フォルダーを入れ、パスを保ったまままとめて書き出せます。' },
+    { title: '幅広い形式', copy: 'JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC を読み込み、必要に応じて変換できます。' },
+    { title: 'どの画面でも快適', copy: 'スマートフォン、タブレット、デスクトップに合わせて操作が整います。' },
+    { title: '出力前に比較', copy: '並べて比較、または中央のハンドルで分割比較できます。' },
+  ] }
+  if (language === 'ko') return { kicker: 'QUACKPRESS를 쓰는 이유', title: '로컬로 처리하는 다섯 가지 이유.', items: [
+    { title: '기본이 비공개', copy: '이미지의 디코드, 압축, 내보내기가 기기에서 끝나며 서버로 전송되지 않습니다.' },
+    { title: '폴더 단위 일괄 처리', copy: '폴더를 놓고 경로를 유지한 채 한 번에 내보내세요.' },
+    { title: '다양한 형식', copy: 'JPG, PNG, WebP, AVIF, GIF, TIFF, HEIC를 불러오고 필요하면 변환하세요.' },
+    { title: '모든 화면에 맞게', copy: '모바일, 태블릿, 데스크톱에서 업로드와 비교 흐름이 자연스럽게 이어집니다.' },
+    { title: '내보내기 전 미리보기', copy: '나란히 비교하거나 중앙 핸들로 분할 비교할 수 있습니다.' },
+  ] }
+  if (language === 'zh-TW') return { kicker: '為什麼選壓縮鴨', title: '留在本機的五個理由。', items: [
+    { title: '預設保護隱私', copy: '圖片在你的裝置上解碼、壓縮與匯出，不會送到伺服器。' },
+    { title: '資料夾批次處理', copy: '拖曳整個資料夾、保留路徑，完成後一次匯出。' },
+    { title: '支援多種格式', copy: '可匯入 JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC，並依需求轉換。' },
+    { title: '各種螢幕都好用', copy: '手機、平板與桌面都能順暢完成上傳、佇列與比較。' },
+    { title: '輸出前先預覽', copy: '支援並排比較，也能拖曳中央控制鈕進行分割比較。' },
+  ] }
+  return { kicker: '为什么选择压缩鸭', title: '坚持本地处理的五个理由。', items: [
+    { title: '默认保护隐私', copy: '图片在你的设备上解码、压缩和导出，不会发送到服务器。' },
+    { title: '文件夹批量处理', copy: '拖入整个文件夹，保留目录路径，完成后一次导出。' },
+    { title: '支持多种格式', copy: '可导入 JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC，并按需要转换。' },
+    { title: '每种屏幕都好用', copy: '手机、平板和电脑都能顺畅完成上传、队列处理和结果对比。' },
+    { title: '导出前先预览', copy: '支持并排对比，也可以拖动中央控制钮进行分割对比。' },
   ] }
 }
 
@@ -664,6 +705,7 @@ function UpdateLog({ language }: { language: Language }) {
 
 function HowItWorks({ language }: { language: Language }) {
   const copy = getCopy(language)
+  const advantages = getAdvantageContent(language)
   const positioning = getPositioningContent(language)
   return <>
     <section className="hero-section how-hero" id="intro">
@@ -682,6 +724,10 @@ function HowItWorks({ language }: { language: Language }) {
         <FeatureCard number="02" icon={<ShieldCheck size={19} />} title={copy.privateTitle} copy={copy.privateCopy} tryLabel={copy.try} />
         <FeatureCard number="03" icon={<Sparkles size={19} />} title={copy.clearTitle} copy={copy.clearCopy} tryLabel={copy.try} />
       </div>
+    </section>
+    <section className="advantages-section">
+      <div className="section-heading"><span className="section-kicker">{advantages.kicker}</span><h2>{advantages.title}</h2></div>
+      <div className="advantage-grid">{advantages.items.map((item, index) => <FeatureCard key={item.title} number={`0${index + 1}`} icon={index === 0 ? <ShieldCheck size={19} /> : index === 1 ? <FolderInput size={19} /> : index === 2 ? <FileImage size={19} /> : index === 3 ? <Smartphone size={19} /> : <Eye size={19} />} title={item.title} copy={item.copy} tryLabel={copy.try} />)}</div>
     </section>
     <PositioningDetails content={positioning} />
   </>
