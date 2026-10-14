@@ -147,37 +147,38 @@ function formatLabel(outputFormat: OutputFormat, language: Language) {
 function getCopy(language: Language): AppCopy {
   if (language === 'en') return {
     home: 'QuackPress home', navLabel: 'Main navigation', tool: 'Compressor', how: 'How it works', language: 'English', login: 'Sign in', menu: 'Open menu',
-    heroTitle: 'Lighter images,', heroTitleAccent: 'faster web.', heroDescription: 'Choose a format, upload images, preview the result, and download. Everything runs locally in your browser.', local: 'Local processing', localDescription: 'No signup. Your images stay on your device.',
+    heroTitle: 'Lighter images,', heroTitleAccent: 'faster web.', heroDescription: 'A privacy-first batch image compressor and format converter. Drop a folder, keep its structure, and export lighter files locally.', local: 'Local processing', localDescription: 'Nothing leaves your device, and your folder structure stays intact.',
     drop: 'Drag or click to choose files', formats: 'Formats', max: '20 MB per file', settings: 'Image compression settings', output: 'Output format', keep: 'Keep default', level: 'Compression level', folder: 'Choose folder', supportedFormats: 'JPG, PNG, WebP, AVIF, GIF, TIFF, HEIC', batchLimit: 'Up to 200 images · 512 MB per batch', exportAll: 'Export all', downloadFiles: 'Download files separately', exportZip: 'Export as ZIP archive', zipWorking: 'Creating ZIP...', exportFolder: 'Save to folder', loginEmail: 'Email address', sendLoginLink: 'Send sign-in link', signOut: 'Sign out', authMissing: 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-in.', workspace: 'YOUR WORKSPACE', done: 'Compression complete.', working: 'Making images lighter.', files: 'files', fast: 'Local processing, speed first', outputPrefix: 'Output:', pause: 'Pause', resume: 'Resume', waiting: 'Images are being processed in your browser. Please wait before leaving.',
     why: 'Less waiting,', whyAccent: 'more creating.', fastTitle: 'Fast enough to forget the wait', fastCopy: 'Everything runs in your browser. Your images take no detour through a server.', privateTitle: 'Your images stay private', privateCopy: 'QuackPress processes images locally in your browser. Nothing is uploaded.', clearTitle: 'Small, without visible loss', clearCopy: 'Smart encoding keeps important details while making files meaningfully smaller.', try: 'Try it', help: 'Help', updates: 'Changelog',
   }
   if (language === 'ja') return {
     home: 'QuackPress ホーム', navLabel: 'メインナビゲーション', tool: '圧縮ツール', how: '使い方', language: '日本語', login: 'ログイン', menu: 'メニューを開く',
-    heroTitle: '画像を軽く、', heroTitleAccent: 'ウェブを速く。', heroDescription: '形式を選び、画像をアップロードして、結果を確認してダウンロード。すべてブラウザ内で処理します。', local: 'ローカル処理', localDescription: '登録不要。画像はデバイスから離れません。',
+    heroTitle: '画像を軽く、', heroTitleAccent: 'ウェブを速く。', heroDescription: 'プライバシーを優先した一括画像圧縮・形式変換ツール。フォルダー構成を保ったまま、本機で書き出せます。', local: 'ローカル処理', localDescription: '画像はデバイスから離れず、フォルダー構成も保たれます。',
     drop: 'ドラッグまたはクリックしてファイルを選択', formats: '対応形式', max: '1ファイル最大 20 MB', settings: '画像圧縮設定', output: '出力形式', keep: 'デフォルト', level: '圧縮レベル', folder: 'フォルダーを選択', supportedFormats: 'JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC', batchLimit: '一括最大200枚・512 MB', exportAll: 'すべて書き出す', downloadFiles: '個別にダウンロード', exportZip: 'ZIPで書き出す', zipWorking: 'ZIPを作成中…', exportFolder: 'フォルダーに保存', loginEmail: 'メールアドレス', sendLoginLink: 'ログインリンクを送信', signOut: 'ログアウト', authMissing: 'ログインを有効にするには Supabase の環境変数を設定してください。', workspace: 'YOUR WORKSPACE', done: '圧縮完了。', working: '画像を軽くしています。', files: 'ファイル', fast: 'ローカル処理、速度優先', outputPrefix: '出力:', pause: '一時停止', resume: '再開', waiting: 'ブラウザで画像を処理中です。完了までお待ちください。',
     why: '待ち時間を減らし、', whyAccent: '創造を増やす。', fastTitle: '待つことを忘れる速さ', fastCopy: 'すべてブラウザで処理。画像をサーバーへ送信しません。', privateTitle: '画像はデバイス内に', privateCopy: 'QuackPress はブラウザ内で画像を処理します。アップロードはありません。', clearTitle: '見た目を保って軽量化', clearCopy: '重要なディテールを残しながら、ファイルサイズを小さくします。', try: '試す', help: 'ヘルプ', updates: '更新履歴',
   }
   if (language === 'ko') return {
     home: 'QuackPress 홈', navLabel: '주 메뉴', tool: '압축 도구', how: '사용 방법', language: '한국어', login: '로그인', menu: '메뉴 열기',
-    heroTitle: '이미지는 가볍게,', heroTitleAccent: '웹은 빠르게.', heroDescription: '형식을 선택하고 이미지를 업로드한 뒤 결과를 확인하고 다운로드하세요. 모든 처리는 브라우저에서 진행됩니다.', local: '로컬 처리', localDescription: '가입이 필요 없습니다. 이미지는 기기에 남습니다.',
+    heroTitle: '이미지는 가볍게,', heroTitleAccent: '웹은 빠르게.', heroDescription: '개인정보를 우선하는 일괄 이미지 압축 및 형식 변환 도구입니다. 폴더 구조를 유지하며 기기에서 바로 내보내세요.', local: '로컬 처리', localDescription: '이미지는 기기를 떠나지 않고 폴더 구조도 그대로 유지됩니다.',
     drop: '드래그하거나 클릭하여 파일 선택', formats: '지원 형식', max: '파일당 최대 20 MB', settings: '이미지 압축 설정', output: '출력 형식', keep: '기본 유지', level: '압축 정도', folder: '폴더 선택', supportedFormats: 'JPG, PNG, WebP, AVIF, GIF, TIFF, HEIC', batchLimit: '한 번에 최대 200개 · 512 MB', exportAll: '전체 내보내기', downloadFiles: '개별 파일 다운로드', exportZip: 'ZIP 파일로 내보내기', zipWorking: 'ZIP 만드는 중...', exportFolder: '폴더에 저장', loginEmail: '이메일 주소', sendLoginLink: '로그인 링크 보내기', signOut: '로그아웃', authMissing: '로그인을 사용하려면 Supabase 환경 변수를 설정하세요.', workspace: 'YOUR WORKSPACE', done: '압축 완료.', working: '이미지를 가볍게 만드는 중입니다.', files: '개 파일', fast: '로컬 처리, 빠른 속도', outputPrefix: '출력:', pause: '일시정지', resume: '계속', waiting: '브라우저에서 이미지를 처리 중입니다. 완료될 때까지 기다려 주세요.',
     why: '기다림은 줄이고,', whyAccent: '창작은 늘리고.', fastTitle: '기다림을 잊을 만큼 빠르게', fastCopy: '모든 처리는 브라우저에서 진행됩니다. 이미지가 서버를 거치지 않습니다.', privateTitle: '이미지는 기기에 안전하게', privateCopy: 'QuackPress는 브라우저에서 이미지를 처리하며 업로드하지 않습니다.', clearTitle: '화질은 유지하고 용량은 줄이고', clearCopy: '중요한 디테일을 유지하면서 파일을 작게 만듭니다.', try: '사용해 보기', help: '도움말', updates: '업데이트',
   }
   if (language === 'zh-TW') return {
     home: '壓縮鴨首頁', navLabel: '主導覽', tool: '壓縮工具', how: '運作方式', language: '繁體中文', login: '登入', menu: '開啟選單',
-    heroTitle: '圖片變輕，', heroTitleAccent: '網頁更快。', heroDescription: '選擇格式、上傳圖片、預覽結果後直接下載。壓縮過程在瀏覽器本機完成。', local: '本機處理', localDescription: '無需註冊，圖片不會離開你的裝置。',
+    heroTitle: '圖片變輕，', heroTitleAccent: '網頁更快。', heroDescription: '以隱私為先的批次圖片壓縮與格式轉換工具。拖曳資料夾、保留結構，直接在本機匯出。', local: '本機處理', localDescription: '圖片不會離開你的裝置，資料夾結構也會保留。',
     drop: '拖曳或點擊選擇檔案', formats: '支援格式', max: '單一檔案最大 20 MB', settings: '圖片壓縮設定', output: '輸出格式', keep: '保持預設', level: '壓縮程度', folder: '選擇資料夾', supportedFormats: 'JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC', batchLimit: '單批最多 200 張 · 512 MB', exportAll: '全部匯出', downloadFiles: '分別下載檔案', exportZip: '匯出為 ZIP 壓縮檔', zipWorking: '正在建立 ZIP…', exportFolder: '匯出至資料夾', loginEmail: '電子郵件', sendLoginLink: '傳送登入連結', signOut: '登出', authMissing: '設定 Supabase 環境變數後即可啟用登入。', workspace: 'YOUR WORKSPACE', done: '壓縮完成。', working: '正在讓圖片變輕。', files: '個檔案', fast: '本機處理，速度優先', outputPrefix: '輸出：', pause: '暫停', resume: '繼續', waiting: '圖片正在瀏覽器中處理，離開頁面前請等待完成',
     why: '少一點等待，', whyAccent: '多一點創造。', fastTitle: '快得讓人忘記等待', fastCopy: '所有處理都在瀏覽器中完成，圖片不會繞路經過伺服器。', privateTitle: '圖片不離開你的裝置', privateCopy: '壓縮鴨在瀏覽器本機處理圖片，不會上傳。', clearTitle: '保持清晰，檔案更小', clearCopy: '保留重要細節，同時有效縮小檔案。', try: '試用看看', help: '說明中心', updates: '更新日誌',
   }
   return {
     home: '压缩鸭首页', navLabel: '主导航', tool: '压缩工具', how: '怎么工作', language: '简体中文', login: '登录', menu: '打开菜单',
-    heroTitle: '图片变轻，', heroTitleAccent: '网页更快。', heroDescription: '选择格式，上传图片，预览结果后直接下载。压缩过程在浏览器本地完成。', local: '本地处理', localDescription: '无需注册，图片不离开你的设备。',
+    heroTitle: '图片变轻，', heroTitleAccent: '网页更快。', heroDescription: '本地隐私优先的批量图片压缩与格式转换工具。拖入文件夹，保留目录结构，直接导出更轻的文件。', local: '本地处理', localDescription: '图片不离开你的设备，文件夹结构也会完整保留。',
     drop: '拖拽或点击选择文件', formats: '支持格式', max: '单张文件最大 20 MB', settings: '图片压缩设置', output: '输出格式', keep: '保持默认', level: '压缩程度', folder: '选择文件夹', supportedFormats: 'JPG、PNG、WebP、AVIF、GIF、TIFF、HEIC', batchLimit: '单批最多 200 张 · 512 MB', exportAll: '全部导出', downloadFiles: '逐张下载', exportZip: '导出为 ZIP 压缩包', zipWorking: '正在打包 ZIP…', exportFolder: '导出到文件夹', loginEmail: '邮箱地址', sendLoginLink: '发送登录链接', signOut: '退出登录', authMissing: '配置 Supabase 环境变量后即可启用登录。', workspace: '你的工作区', done: '压缩完成。', working: '正在压缩图片。', files: '个文件', fast: '本地处理 · 速度优先', outputPrefix: '输出：', pause: '暂停', resume: '继续', waiting: '图片正在本地处理中，请稍候。',
     why: '少一点等待，', whyAccent: '多一点创造。', fastTitle: '快得让人忘记等待', fastCopy: '所有处理都在你的浏览器里完成。图片不会绕远路，上传后马上就能看到结果。', privateTitle: '图片不离开你的设备', privateCopy: '压缩鸭当前在浏览器本地完成处理，不需要把图片上传到我们的服务器。', clearTitle: '清晰，肉眼看不出差别', clearCopy: '智能选择压缩参数，在明显变小的同时，尽量保留每个重要的细节。', try: '试试看', help: '帮助中心', updates: '更新日志',
   }
 }
 
 type UpdateEntry = { date: string; tag: string; title: string; copy: string }
+type PositioningContent = { audienceKicker: string; audienceTitle: string; audienceDescription: string; audiences: { title: string; copy: string }[]; flowKicker: string; flowTitle: string; steps: { label: string; title: string; copy: string }[] }
 
 function getUpdateLog(language: Language): { kicker: string; title: string; description: string; latest: string; entries: UpdateEntry[] } {
   if (language === 'en') return { kicker: 'RELEASE NOTES', title: 'What is new.', description: 'A clear record of the improvements behind QuackPress.', latest: 'Latest', entries: [
@@ -211,6 +212,54 @@ function getPageFromHash(hash: string): 'home' | 'how' | 'updates' {
   if (hash === '#updates') return 'updates'
   if (hash === '#how-it-works') return 'how'
   return 'home'
+}
+
+function getPositioningContent(language: Language): PositioningContent {
+  if (language === 'en') return { audienceKicker: 'MADE FOR REAL WORK', audienceTitle: 'Built for the folders you already have.', audienceDescription: 'QuackPress removes the handoff between a busy asset folder and a web-ready delivery.', audiences: [
+    { title: 'Content teams', copy: 'Process product, campaign, and social assets in one batch without uploading company files.' },
+    { title: 'Designers & photographers', copy: 'Compare the result at a glance and choose the balance between size and detail.' },
+    { title: 'Web teams', copy: 'Convert to modern formats, keep paths intact, and ship lighter assets faster.' },
+  ], flowKicker: 'THE WORKFLOW', flowTitle: 'Three steps. One private workspace.', steps: [
+    { label: '01', title: 'Drop a file or folder', copy: 'Bring in individual images or an entire folder. Paths are retained for export.' },
+    { label: '02', title: 'Set the trade-off', copy: 'Keep the source format or choose JPG, PNG, WebP, or AVIF, then set compression.' },
+    { label: '03', title: 'Review and export', copy: 'Compare the result, download files separately, or export a ZIP or folder.' },
+  ] }
+  if (language === 'ja') return { audienceKicker: '実務のために', audienceTitle: '今あるフォルダーを、そのまま軽く。', audienceDescription: 'QuackPress は素材フォルダーからウェブ用ファイルまでの受け渡しを短くします。', audiences: [
+    { title: 'コンテンツチーム', copy: '商品・キャンペーン素材をアップロードせずに一括処理できます。' },
+    { title: 'デザイナー・写真家', copy: '結果を比較し、容量とディテールのバランスを選べます。' },
+    { title: 'ウェブチーム', copy: '最新形式へ変換し、パスを保ったまま軽い素材を出力できます。' },
+  ], flowKicker: 'ワークフロー', flowTitle: '3ステップの本機ワークスペース。', steps: [
+    { label: '01', title: 'ファイルを入れる', copy: '画像でもフォルダーでも読み込み、構成を保ったまま処理します。' },
+    { label: '02', title: '圧縮を決める', copy: '形式と圧縮レベルを選び、容量と画質のバランスを調整します。' },
+    { label: '03', title: '確認して出力', copy: '比較表示で確認し、個別・ZIP・フォルダーで書き出します。' },
+  ] }
+  if (language === 'ko') return { audienceKicker: '실제 작업을 위해', audienceTitle: '이미 가진 폴더를 그대로 가볍게.', audienceDescription: 'QuackPress는 자산 폴더를 웹용 파일로 만드는 과정을 짧게 줄입니다.', audiences: [
+    { title: '콘텐츠 팀', copy: '상품과 캠페인 이미지를 업로드하지 않고 한 번에 처리하세요.' },
+    { title: '디자이너·사진가', copy: '결과를 비교하고 용량과 디테일의 균형을 선택하세요.' },
+    { title: '웹 팀', copy: '최신 형식으로 변환하고 경로를 유지한 채 가벼운 파일을 만드세요.' },
+  ], flowKicker: '작업 흐름', flowTitle: '세 단계로 끝나는 로컬 작업 공간.', steps: [
+    { label: '01', title: '파일 또는 폴더 놓기', copy: '이미지와 폴더를 모두 가져오며 경로를 보존합니다.' },
+    { label: '02', title: '압축 설정하기', copy: '형식과 압축 정도를 선택해 크기와 화질을 조절합니다.' },
+    { label: '03', title: '확인하고 내보내기', copy: '결과를 비교한 뒤 개별 파일, ZIP 또는 폴더로 내보냅니다.' },
+  ] }
+  if (language === 'zh-TW') return { audienceKicker: '為真實工作而做', audienceTitle: '把現有資料夾直接變輕。', audienceDescription: '壓縮鴨縮短素材資料夾到網頁交付檔案之間的流程。', audiences: [
+    { title: '內容團隊', copy: '商品、活動與社群素材不必上傳，直接批次處理。' },
+    { title: '設計師與攝影師', copy: '快速比較結果，選擇容量與細節的平衡。' },
+    { title: '網頁團隊', copy: '轉換現代格式、保留路徑，更快交付輕量素材。' },
+  ], flowKicker: '工作流程', flowTitle: '三步完成的本機工作空間。', steps: [
+    { label: '01', title: '放入檔案或資料夾', copy: '單張圖片或整個資料夾都能匯入，路徑會保留。' },
+    { label: '02', title: '設定壓縮取捨', copy: '保留原格式或選擇輸出格式，再調整壓縮程度。' },
+    { label: '03', title: '確認並匯出', copy: '比較結果後，可分別下載、匯出 ZIP 或資料夾。' },
+  ] }
+  return { audienceKicker: '为真实工作而做', audienceTitle: '把现有文件夹直接变轻。', audienceDescription: '压缩鸭缩短素材文件夹到网页交付文件之间的流程。', audiences: [
+    { title: '内容团队', copy: '商品、活动和社交媒体素材无需上传，直接批量处理。' },
+    { title: '设计师与摄影师', copy: '快速对比结果，选择体积与细节的平衡。' },
+    { title: '网页团队', copy: '转换现代格式、保留目录路径，更快交付轻量素材。' },
+  ], flowKicker: '工作流程', flowTitle: '三步完成的本地工作区。', steps: [
+    { label: '01', title: '放入文件或文件夹', copy: '单张图片或整个文件夹都能导入，目录路径会保留。' },
+    { label: '02', title: '设置压缩取舍', copy: '保持原格式或选择输出格式，再调整压缩程度。' },
+    { label: '03', title: '确认并导出', copy: '对比结果后，可逐张下载、导出 ZIP 或文件夹。' },
+  ] }
 }
 
 function App() {
@@ -615,6 +664,7 @@ function UpdateLog({ language }: { language: Language }) {
 
 function HowItWorks({ language }: { language: Language }) {
   const copy = getCopy(language)
+  const positioning = getPositioningContent(language)
   return <>
     <section className="hero-section how-hero" id="intro">
       <div className="hero-copy">
@@ -632,6 +682,20 @@ function HowItWorks({ language }: { language: Language }) {
         <FeatureCard number="02" icon={<ShieldCheck size={19} />} title={copy.privateTitle} copy={copy.privateCopy} tryLabel={copy.try} />
         <FeatureCard number="03" icon={<Sparkles size={19} />} title={copy.clearTitle} copy={copy.clearCopy} tryLabel={copy.try} />
       </div>
+    </section>
+    <PositioningDetails content={positioning} />
+  </>
+}
+
+function PositioningDetails({ content }: { content: PositioningContent }) {
+  return <>
+    <section className="positioning-section">
+      <div className="positioning-heading"><div><span className="section-kicker">{content.audienceKicker}</span><h2>{content.audienceTitle}</h2></div><p>{content.audienceDescription}</p></div>
+      <div className="audience-grid">{content.audiences.map((audience, index) => <article className="audience-card" key={audience.title}><span>0{index + 1}</span><h3>{audience.title}</h3><p>{audience.copy}</p></article>)}</div>
+    </section>
+    <section className="workflow-section">
+      <div className="section-heading"><span className="section-kicker">{content.flowKicker}</span><h2>{content.flowTitle}</h2></div>
+      <div className="workflow-grid">{content.steps.map((step) => <article className="workflow-step" key={step.label}><span>{step.label}</span><h3>{step.title}</h3><p>{step.copy}</p></article>)}</div>
     </section>
   </>
 }
