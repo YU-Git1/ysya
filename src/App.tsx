@@ -524,16 +524,6 @@ function App() {
 
       <main id="top">
         {activePage === 'updates' ? <UpdateLog language={language} /> : activePage === 'how' ? <HowItWorks language={language} /> : <>
-        <section className="hero-section" id="intro">
-          <div className="hero-copy">
-            <div className="eyebrow"><span className="eyebrow-line" /> QUACKPRESS IMAGE TOOL</div>
-            <h1>{copy.heroTitle}<br /><em>{copy.heroTitleAccent}</em></h1>
-            <p className="hero-description">{copy.heroDescription}</p>
-            <div className="hero-proof"><span className="local-proof"><LockKeyhole size={13} /> {copy.local}</span><span>{copy.localDescription}</span></div>
-          </div>
-          <div className="hero-aside"><span className="aside-number">01</span><span className="aside-label">DROP<br />YOUR FILES<br />HERE</span><span className="aside-arrow">↘</span></div>
-        </section>
-
         <section className="workspace-section" id="compress">
           <div
             className={`dropzone ${isDragging ? 'dropzone-active' : ''}`}
@@ -625,14 +615,25 @@ function UpdateLog({ language }: { language: Language }) {
 
 function HowItWorks({ language }: { language: Language }) {
   const copy = getCopy(language)
-  return <section className="features-section how-page" id="how-it-works">
-    <div className="section-heading"><span className="section-kicker">WHY QUACKPRESS</span><h2>{copy.why}<br /><em>{copy.whyAccent}</em></h2></div>
-    <div className="feature-grid">
-      <FeatureCard number="01" icon={<Zap size={19} />} title={copy.fastTitle} copy={copy.fastCopy} tryLabel={copy.try} />
-      <FeatureCard number="02" icon={<ShieldCheck size={19} />} title={copy.privateTitle} copy={copy.privateCopy} tryLabel={copy.try} />
-      <FeatureCard number="03" icon={<Sparkles size={19} />} title={copy.clearTitle} copy={copy.clearCopy} tryLabel={copy.try} />
-    </div>
-  </section>
+  return <>
+    <section className="hero-section how-hero" id="intro">
+      <div className="hero-copy">
+        <div className="eyebrow"><span className="eyebrow-line" /> QUACKPRESS IMAGE TOOL</div>
+        <h1>{copy.heroTitle}<br /><em>{copy.heroTitleAccent}</em></h1>
+        <p className="hero-description">{copy.heroDescription}</p>
+        <div className="hero-proof"><span className="local-proof"><LockKeyhole size={13} /> {copy.local}</span><span>{copy.localDescription}</span></div>
+      </div>
+      <div className="hero-aside"><span className="aside-number">01</span><span className="aside-label">DROP<br />YOUR FILES<br />HERE</span><span className="aside-arrow">↘</span></div>
+    </section>
+    <section className="features-section how-page" id="how-it-works">
+      <div className="section-heading"><span className="section-kicker">WHY QUACKPRESS</span><h2>{copy.why}<br /><em>{copy.whyAccent}</em></h2></div>
+      <div className="feature-grid">
+        <FeatureCard number="01" icon={<Zap size={19} />} title={copy.fastTitle} copy={copy.fastCopy} tryLabel={copy.try} />
+        <FeatureCard number="02" icon={<ShieldCheck size={19} />} title={copy.privateTitle} copy={copy.privateCopy} tryLabel={copy.try} />
+        <FeatureCard number="03" icon={<Sparkles size={19} />} title={copy.clearTitle} copy={copy.clearCopy} tryLabel={copy.try} />
+      </div>
+    </section>
+  </>
 }
 
 function ImageRow({ item, language, onRemove, onRetry, onDownload, onPreview }: { item: ImageItem; language: Language; onRemove: (id: string) => void; onRetry: (item: ImageItem) => void; onDownload: (item: ImageItem) => void; onPreview: (item: ImageItem) => void }) {
