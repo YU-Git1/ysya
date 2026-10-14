@@ -207,6 +207,12 @@ function getUpdateLog(language: Language): { kicker: string; title: string; desc
   ] }
 }
 
+function getPageFromHash(hash: string): 'home' | 'how' | 'updates' {
+  if (hash === '#updates') return 'updates'
+  if (hash === '#how-it-works') return 'how'
+  return 'home'
+}
+
 function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
@@ -233,7 +239,7 @@ function App() {
   const [isSendingLogin, setIsSendingLogin] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [isNavVisible, setIsNavVisible] = useState(true)
-  const [activePage, setActivePage] = useState<'home' | 'updates'>(() => window.location.hash === '#updates' ? 'updates' : 'home')
+  const [activePage, setActivePage] = useState<'home' | 'how' | 'updates'>(() => getPageFromHash(window.location.hash))
   const navHideTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -461,7 +467,7 @@ function App() {
   }
 
   useEffect(() => {
-    const handleHashChange = () => setActivePage(window.location.hash === '#updates' ? 'updates' : 'home')
+    const handleHashChange = () => setActivePage(getPageFromHash(window.location.hash))
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
@@ -495,7 +501,7 @@ function App() {
         </a>
         <nav className="desktop-nav" aria-label={copy.navLabel}>
           <a className={activePage === 'home' ? 'nav-active' : ''} href="#compress">{copy.tool}</a>
-          <a href="#how-it-works">{copy.how}</a>
+          <a className={activePage === 'how' ? 'nav-active' : ''} href="#how-it-works">{copy.how}</a>
           <a className={activePage === 'updates' ? 'nav-active' : ''} href="#updates">{copy.updates}</a>
         </nav>
         <div className="topbar-actions">
@@ -517,7 +523,7 @@ function App() {
       </header>
 
       <main id="top">
-        {activePage === 'updates' ? <UpdateLog language={language} /> : <>
+        {activePage === 'updates' ? <UpdateLog language={language} /> : activePage === 'how' ? <HowItWorks language={language} /> : <>
         <section className="hero-section" id="intro">
           <div className="hero-copy">
             <div className="eyebrow"><span className="eyebrow-line" /> QUACKPRESS IMAGE TOOL</div>
@@ -592,15 +598,6 @@ function App() {
           {notice && <div className="notice" role="alert"><Info size={16} /> {notice}<button onClick={() => setNotice('')} aria-label="关闭提示"><X size={15} /></button></div>}
         </section>
 
-        <section className="features-section" id="how-it-works">
-          <div className="section-heading"><span className="section-kicker">WHY QUACKPRESS</span><h2>{copy.why}<br /><em>{copy.whyAccent}</em></h2></div>
-          <div className="feature-grid">
-            <FeatureCard number="01" icon={<Zap size={19} />} title={copy.fastTitle} copy={copy.fastCopy} tryLabel={copy.try} />
-            <FeatureCard number="02" icon={<ShieldCheck size={19} />} title={copy.privateTitle} copy={copy.privateCopy} tryLabel={copy.try} />
-            <FeatureCard number="03" icon={<Sparkles size={19} />} title={copy.clearTitle} copy={copy.clearCopy} tryLabel={copy.try} />
-          </div>
-        </section>
-
         </>}
 
       </main>
@@ -622,6 +619,18 @@ function UpdateLog({ language }: { language: Language }) {
         <div className="update-entry-copy"><div className="update-entry-title"><h3>{entry.title}</h3>{index === 0 && <span>{copy.latest}</span>}</div><p>{entry.copy}</p></div>
         <span className="update-tag">{entry.tag}</span>
       </article>)}
+    </div>
+  </section>
+}
+
+function HowItWorks({ language }: { language: Language }) {
+  const copy = getCopy(language)
+  return <section className="features-section how-page" id="how-it-works">
+    <div className="section-heading"><span className="section-kicker">WHY QUACKPRESS</span><h2>{copy.why}<br /><em>{copy.whyAccent}</em></h2></div>
+    <div className="feature-grid">
+      <FeatureCard number="01" icon={<Zap size={19} />} title={copy.fastTitle} copy={copy.fastCopy} tryLabel={copy.try} />
+      <FeatureCard number="02" icon={<ShieldCheck size={19} />} title={copy.privateTitle} copy={copy.privateCopy} tryLabel={copy.try} />
+      <FeatureCard number="03" icon={<Sparkles size={19} />} title={copy.clearTitle} copy={copy.clearCopy} tryLabel={copy.try} />
     </div>
   </section>
 }
